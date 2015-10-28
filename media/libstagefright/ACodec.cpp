@@ -935,7 +935,18 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
         mNativeWindowUsageBits = 0;
         return err;
     }
-
+	
+	android_native_rect_t crop;
+    crop.left = 0;
+    crop.top = 0;
+    crop.right = def.format.video.nFrameWidth & (~3); //if no 4 aglin crop csy
+    crop.bottom = def.format.video.nFrameHeight;
+	err = native_window_set_crop(mNativeWindow.get(), &crop);
+    if (err != 0) {
+        ALOGE("native_window_set_cropfailed: %s (%d)",strerror(-err), -err);
+        return err;
+    }
+	
     // Exits here for tunneled video playback codecs -- i.e. skips native window
     // buffer allocation step as this is managed by the tunneled OMX omponent
     // itself and explicitly sets def.nBufferCountActual to 0.
@@ -977,20 +988,25 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
     for (OMX_U32 extraBuffers = 2 + 1; /* condition inside loop */; extraBuffers--) {
         OMX_U32 newBufferCount =
             def.nBufferCountMin + *minUndequeuedBuffers + extraBuffers;
-        def.nBufferCountActual = newBufferCount;
-        err = mOMX->setParameter(
-                mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
+        if(def.nBufferCountActual < newBufferCount){
+            def.nBufferCountActual = newBufferCount;
+            err = mOMX->setParameter(
+                  mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
 
-        if (err == OK) {
+            if (err == OK) {
+                *minUndequeuedBuffers += extraBuffers;
+                break;
+            }
+
+            ALOGW("[%s] setting nBufferCountActual to %u failed: %d",
+                  mComponentName.c_str(), newBufferCount, err);
+            /* exit condition */
+           if (extraBuffers == 0) {
+                return err;
+            }
+        }else{
             *minUndequeuedBuffers += extraBuffers;
             break;
-        }
-
-        ALOGW("[%s] setting nBufferCountActual to %u failed: %d",
-                mComponentName.c_str(), newBufferCount, err);
-        /* exit condition */
-        if (extraBuffers == 0) {
-            return err;
         }
     }
 

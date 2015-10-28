@@ -1802,7 +1802,7 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
         CODEC_LOGE("getParameter failed: %d", err);
         return err;
     }
-
+	
     sp<MetaData> meta = mSource->getFormat();
 
     int32_t rotationDegrees;
@@ -1823,6 +1823,12 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
         usage |= GRALLOC_USAGE_PROTECTED;
     }
 
+    android_native_rect_t crop;
+    crop.left = 0;
+    crop.top = 0;
+    crop.right = def.format.video.nFrameWidth & (~3); //if no 4 aglin crop csy
+    crop.bottom = def.format.video.nFrameHeight;
+
     err = setNativeWindowSizeFormatAndUsage(
             mNativeWindow.get(),
             def.format.video.nFrameWidth,
@@ -1831,6 +1837,12 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
             rotationDegrees,
             usage | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_EXTERNAL_DISP);
     if (err != 0) {
+        return err;
+    }
+	
+    err = native_window_set_crop(mNativeWindow.get(), &crop);
+    if (err != 0) {
+        ALOGE("native_window_set_cropfailed: %s (%d)",strerror(-err), -err);
         return err;
     }
 
@@ -1860,20 +1872,25 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
     for (OMX_U32 extraBuffers = 2 + 1; /* condition inside loop */; extraBuffers--) {
         OMX_U32 newBufferCount =
             def.nBufferCountMin + minUndequeuedBufs + extraBuffers;
-        def.nBufferCountActual = newBufferCount;
-        err = mOMX->setParameter(
-                mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
+        if(def.nBufferCountActual < newBufferCount){
+            def.nBufferCountActual = newBufferCount;
+            err = mOMX->setParameter(
+                  mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
 
-        if (err == OK) {
+            if (err == OK) {
+                minUndequeuedBufs += extraBuffers;
+                break;
+            }
+
+            CODEC_LOGW("setting nBufferCountActual to %u failed: %d",
+                newBufferCount, err);
+            /* exit condition */
+            if (extraBuffers == 0) {
+            	return err;
+            }
+        }else{
             minUndequeuedBufs += extraBuffers;
             break;
-        }
-
-        CODEC_LOGW("setting nBufferCountActual to %u failed: %d",
-                newBufferCount, err);
-        /* exit condition */
-        if (extraBuffers == 0) {
-            return err;
         }
     }
     CODEC_LOGI("OMX-buffers: min=%u actual=%u undeq=%d+1",
@@ -2403,7 +2420,7 @@ void OMXCodec::onCmdComplete(OMX_COMMANDTYPE cmd, OMX_U32 data) {
 
             if (mState == RECONFIGURING) {
                 CHECK_EQ(portIndex, (OMX_U32)kPortIndexOutput);
-
+#if 0
                 sp<MetaData> oldOutputFormat = mOutputFormat;
                 initOutputFormat(mSource->getFormat());
 
@@ -2414,6 +2431,7 @@ void OMXCodec::onCmdComplete(OMX_COMMANDTYPE cmd, OMX_U32 data) {
                 if (!mOutputPortSettingsHaveChanged) {
                     mOutputPortSettingsHaveChanged = formatChanged;
                 }
+#endif
 
                 status_t err = enablePortAsync(portIndex);
                 if (err != OK) {
@@ -3807,9 +3825,23 @@ status_t OMXCodec::read(
             }
         }
     }
-
+    int32_t retrycount = 20;
+    if(!strncmp("OMX.rk",mComponentName,6)){
+        retrycount = 0;
+    }
+retry:
     while (mState != ERROR && !mNoMoreOutputData && mFilledBuffers.empty()) {
+        if (mOutputPortSettingsHaveChanged) {
+            mOutputPortSettingsHaveChanged = false;
+            ALOGI("found informat change");
+            return INFO_FORMAT_CHANGED;
+        }
         if ((err = waitForBufferFilled_l()) != OK) {
+           if(retrycount--)
+           {
+                goto retry;
+           }
+           ALOGE("omx read decoder frame timeout");
             return err;
         }
     }
@@ -3828,6 +3860,9 @@ status_t OMXCodec::read(
         return INFO_FORMAT_CHANGED;
     }
 
+    if(!strncmp("OMX.rk",mComponentName,6)){
+        ALOGV("mFilledBuffers size = %d",mFilledBuffers.size());
+    }
     size_t index = *mFilledBuffers.begin();
     mFilledBuffers.erase(mFilledBuffers.begin());
 

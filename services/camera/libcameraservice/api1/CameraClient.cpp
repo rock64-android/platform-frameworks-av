@@ -250,8 +250,8 @@ void CameraClient::disconnect() {
     // idle state.
     // Turn off all messages.
     disableMsgType(CAMERA_MSG_ALL_MSGS);
+    mHardware->cancelPicture();            /* ddl@rock-chips.com */
     mHardware->stopPreview();
-    mHardware->cancelPicture();
     // Release the hardware resources.
     mHardware->release();
 
@@ -443,14 +443,19 @@ status_t CameraClient::startRecordingMode() {
 // stop preview mode
 void CameraClient::stopPreview() {
     LOG1("stopPreview (pid %d)", getCallingPid());
+    int msg_enable;
     Mutex::Autolock lock(mLock);
     if (checkPidAndHardware() != NO_ERROR) return;
 
 
     disableMsgType(CAMERA_MSG_PREVIEW_FRAME);
+    msg_enable = mMsgEnabled;
+    disableMsgType(CAMERA_MSG_ALL_MSGS);
+    mHardware->cancelPicture();            /* ddl@rock-chips.com */
     mHardware->stopPreview();
 
     mPreviewBuffer.clear();
+    enableMsgType(msg_enable);
 }
 
 // stop recording mode
@@ -521,8 +526,11 @@ status_t CameraClient::cancelAutoFocus() {
 
 // take a picture - image is returned in callback
 status_t CameraClient::takePicture(int msgType) {
+	int err = 0;
+	int old_msgType;
     LOG1("takePicture (pid %d): 0x%x", getCallingPid(), msgType);
-
+    //disable face detetect ,prevent from deadlock ,zyc
+    mHardware->disableMsgType(CAMERA_MSG_PREVIEW_METADATA);
     Mutex::Autolock lock(mLock);
     status_t result = checkPidAndHardware();
     if (result != NO_ERROR) return result;
@@ -534,6 +542,10 @@ status_t CameraClient::takePicture(int msgType) {
         return BAD_VALUE;
     }
 
+	//prevent from deadlock,zyc
+	old_msgType = mMsgEnabled; 
+	if(old_msgType & CAMERA_MSG_PREVIEW_FRAME)
+		disableMsgType(CAMERA_MSG_PREVIEW_FRAME);
     // We only accept picture related message types
     // and ignore other types of messages for takePicture().
     int picMsgType = msgType
@@ -545,7 +557,10 @@ status_t CameraClient::takePicture(int msgType) {
 
     enableMsgType(picMsgType);
 
-    return mHardware->takePicture();
+    err = mHardware->takePicture();
+	if(old_msgType & CAMERA_MSG_PREVIEW_FRAME)
+		enableMsgType(CAMERA_MSG_PREVIEW_FRAME);
+	return err;
 }
 
 // set preview/capture parameters - key/value pairs
@@ -611,6 +626,11 @@ status_t CameraClient::enableShutterSound(bool enable) {
 status_t CameraClient::sendCommand(int32_t cmd, int32_t arg1, int32_t arg2) {
     LOG1("sendCommand (pid %d)", getCallingPid());
     int orientation;
+    //CAMERA_CMD_STOP_FACE_DETECTION needn't get mLock,or will cause deadlock with datacallback,zyc
+    if(cmd == CAMERA_CMD_STOP_FACE_DETECTION){
+        return mHardware->sendCommand(cmd, arg1, arg2);
+    }
+    
     Mutex::Autolock lock(mLock);
     status_t result = checkPidAndHardware();
     if (result != NO_ERROR) return result;
@@ -788,9 +808,13 @@ void CameraClient::handleShutter(void) {
         c->notifyCallback(CAMERA_MSG_SHUTTER, 0, 0);
         if (!lockIfMessageWanted(CAMERA_MSG_SHUTTER)) return;
     }
-    disableMsgType(CAMERA_MSG_SHUTTER);
 
-    mLock.unlock();
+//    disableMsgType(CAMERA_MSG_SHUTTER);
+	//zyc ,for continuous pic
+	mHardware->disableMsgType(CAMERA_MSG_SHUTTER);
+    if(!mHardware->msgTypeEnabled(CAMERA_MSG_SHUTTER))
+		android_atomic_and(~CAMERA_MSG_SHUTTER, &mMsgEnabled);
+	mLock.unlock();
 }
 
 // preview callback - frame buffer update
@@ -867,8 +891,12 @@ void CameraClient::handleRawPicture(const sp<IMemory>& mem) {
 
 // picture callback - compressed picture ready
 void CameraClient::handleCompressedPicture(const sp<IMemory>& mem) {
-    disableMsgType(CAMERA_MSG_COMPRESSED_IMAGE);
-
+    
+//	disableMsgType(CAMERA_MSG_COMPRESSED_IMAGE);
+	//zyc modify for continous pic
+    mHardware->disableMsgType(CAMERA_MSG_COMPRESSED_IMAGE);
+	if(!mHardware->msgTypeEnabled(CAMERA_MSG_COMPRESSED_IMAGE))
+		android_atomic_and(~CAMERA_MSG_COMPRESSED_IMAGE, &mMsgEnabled);
     sp<ICameraClient> c = mRemoteCallback;
     mLock.unlock();
     if (c != 0) {

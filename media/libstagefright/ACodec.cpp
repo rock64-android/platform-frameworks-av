@@ -907,12 +907,11 @@ status_t ACodec::setupNativeWindowSizeFormatAndUsage(
 
     usage |= kVideoGrallocUsage;
     *finalUsage = usage;
-
     ALOGV("gralloc usage: %#x(OMX) => %#x(ACodec)", omxUsage, usage);
     return setNativeWindowSizeFormatAndUsage(
             nativeWindow,
-            def.format.video.nFrameWidth,
-            def.format.video.nFrameHeight,
+            def.format.video.nStride,
+            def.format.video.nSliceHeight,
             def.format.video.eColorFormat,
             mRotationDegrees,
             usage);
@@ -935,7 +934,7 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
         mNativeWindowUsageBits = 0;
         return err;
     }
-	
+
 	android_native_rect_t crop;
     crop.left = 0;
     crop.top = 0;
@@ -946,7 +945,7 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
         ALOGE("native_window_set_cropfailed: %s (%d)",strerror(-err), -err);
         return err;
     }
-	
+
     // Exits here for tunneled video playback codecs -- i.e. skips native window
     // buffer allocation step as this is managed by the tunneled OMX omponent
     // itself and explicitly sets def.nBufferCountActual to 0.

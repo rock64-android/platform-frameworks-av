@@ -1802,7 +1802,7 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
         CODEC_LOGE("getParameter failed: %d", err);
         return err;
     }
-	
+
     sp<MetaData> meta = mSource->getFormat();
 
     int32_t rotationDegrees;
@@ -1831,15 +1831,15 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
 
     err = setNativeWindowSizeFormatAndUsage(
             mNativeWindow.get(),
-            def.format.video.nFrameWidth,
-            def.format.video.nFrameHeight,
+            def.format.video.nStride,
+            def.format.video.nSliceHeight,
             def.format.video.eColorFormat,
             rotationDegrees,
             usage | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_EXTERNAL_DISP);
     if (err != 0) {
         return err;
     }
-	
+
     err = native_window_set_crop(mNativeWindow.get(), &crop);
     if (err != 0) {
         ALOGE("native_window_set_cropfailed: %s (%d)",strerror(-err), -err);

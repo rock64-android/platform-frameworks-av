@@ -252,6 +252,10 @@ void CameraClient::disconnect() {
     disableMsgType(CAMERA_MSG_ALL_MSGS);
     mHardware->cancelPicture();            /* ddl@rock-chips.com */
     mHardware->stopPreview();
+    mCameraService->updateProxyDeviceState(
+        ICameraServiceProxy::CAMERA_STATE_IDLE,
+        String8::format("%d", mCameraId));
+    mHardware->cancelPicture();
     // Release the hardware resources.
     mHardware->release();
 
@@ -409,7 +413,11 @@ status_t CameraClient::startPreviewMode() {
     }
     mHardware->setPreviewWindow(mPreviewWindow);
     result = mHardware->startPreview();
-
+    if (result == NO_ERROR) {
+        mCameraService->updateProxyDeviceState(
+            ICameraServiceProxy::CAMERA_STATE_ACTIVE,
+            String8::format("%d", mCameraId));
+    }
     return result;
 }
 
@@ -453,7 +461,9 @@ void CameraClient::stopPreview() {
     disableMsgType(CAMERA_MSG_ALL_MSGS);
     mHardware->cancelPicture();            /* ddl@rock-chips.com */
     mHardware->stopPreview();
-
+    mCameraService->updateProxyDeviceState(
+        ICameraServiceProxy::CAMERA_STATE_IDLE,
+        String8::format("%d", mCameraId));
     mPreviewBuffer.clear();
     enableMsgType(msg_enable);
 }
@@ -814,7 +824,14 @@ void CameraClient::handleShutter(void) {
 	mHardware->disableMsgType(CAMERA_MSG_SHUTTER);
     if(!mHardware->msgTypeEnabled(CAMERA_MSG_SHUTTER))
 		android_atomic_and(~CAMERA_MSG_SHUTTER, &mMsgEnabled);
-	mLock.unlock();
+    
+    // Shutters only happen in response to takePicture, so mark device as
+    // idle now, until preview is restarted
+    mCameraService->updateProxyDeviceState(
+        ICameraServiceProxy::CAMERA_STATE_IDLE,
+        String8::format("%d", mCameraId));
+
+    mLock.unlock();
 }
 
 // preview callback - frame buffer update

@@ -761,7 +761,7 @@ bool SniffMPEG2PS(
         return false;
     }
 
-    *confidence = 0.25f;  // Slightly larger than .mp3 extractor's confidence
+    *confidence = MPEG2PS_CONTAINER_CONFIDENCE ;  // Slightly larger than .mp3 extractor's confidence
 
     mimeType->setTo(MEDIA_MIMETYPE_CONTAINER_MPEG2PS);
 

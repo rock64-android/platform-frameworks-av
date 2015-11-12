@@ -1,6 +1,14 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
+LOCAL_SRC_FILES:=                         \
+        version.cpp
+$(SHELL $(LOCAL_PATH)/version.sh)
+LOCAL_CFLAGS += -Wno-multichar
+LOCAL_MODULE:= libstagefright_version
+include $(BUILD_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
 include frameworks/av/media/libstagefright/codecs/common/Config.mk
 
 LOCAL_SRC_FILES:=                         \
@@ -43,6 +51,7 @@ LOCAL_SRC_FILES:=                         \
         MediaSync.cpp                     \
         MidiExtractor.cpp                 \
         http/MediaHTTP.cpp                \
+        ExtendedExtractor.cpp             \
         MediaMuxer.cpp                    \
         MediaSource.cpp                   \
         MetaData.cpp                      \
@@ -109,7 +118,6 @@ LOCAL_SHARED_LIBRARIES := \
 LOCAL_STATIC_LIBRARIES := \
         libstagefright_color_conversion \
         libstagefright_aacenc \
-        libstagefright_matroska \
         libstagefright_mediafilter \
         libstagefright_webm \
         libstagefright_timedtext \
@@ -119,6 +127,7 @@ LOCAL_STATIC_LIBRARIES := \
         libstagefright_id3 \
         libFLAC \
         libmedia_helper \
+        libstagefright_version\
 
 LOCAL_SHARED_LIBRARIES += \
         libstagefright_enc_common \

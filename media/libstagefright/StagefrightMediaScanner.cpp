@@ -28,6 +28,7 @@
 #include <media/mediametadataretriever.h>
 #include <private/media/VideoFrame.h>
 
+#include <utils/String8.h>
 namespace android {
 
 StagefrightMediaScanner::StagefrightMediaScanner() {}
@@ -36,11 +37,12 @@ StagefrightMediaScanner::~StagefrightMediaScanner() {}
 
 static bool FileHasAcceptableExtension(const char *extension) {
     static const char *kValidExtensions[] = {
-        ".mp3", ".mp4", ".m4a", ".3gp", ".3gpp", ".3g2", ".3gpp2",
+        ".mp3", ".mp4",".mov",".m4a", ".3gp", ".3gpp", ".3g2", ".3gpp2",
         ".mpeg", ".ogg", ".mid", ".smf", ".imy", ".wma", ".aac",
         ".wav", ".amr", ".midi", ".xmf", ".rtttl", ".rtx", ".ota",
-        ".mkv", ".mka", ".webm", ".ts", ".fl", ".flac", ".mxmf",
-        ".avi", ".mpeg", ".mpg", ".awb", ".mpga"
+        ".mkv", ".mka", ".webm", ".ts",".avi",".flv",".wmv", ".asf", ".mpg",
+        ".vob",".dat",".flac",".ape",".mpga",".ts",".tp",
+        ".trp",".m2ts", ".mxmf",".mp2",".mp1",".mxmf", ".f4v", ".mts", ".divx", ".dcf"
     };
     static const size_t kNumValidExtensions =
         sizeof(kValidExtensions) / sizeof(kValidExtensions[0]);
@@ -130,6 +132,12 @@ MediaScanResult StagefrightMediaScanner::processFileInternal(
     for (size_t i = 0; i < kNumEntries; ++i) {
         const char *value;
         if ((value = mRetriever->extractMetadata(kKeyMap[i].key)) != NULL) {
+            String8 rkTag(value);
+            if(rkTag.find("rkutf8") == 0)
+            {
+                status = client.handleStringTag(kKeyMap[i].tag, value+6);
+            }
+            else
             status = client.addStringTag(kKeyMap[i].tag, value);
             if (status != OK) {
                 return MEDIA_SCAN_RESULT_ERROR;

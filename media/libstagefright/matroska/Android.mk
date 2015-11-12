@@ -1,3 +1,4 @@
+ifeq ($1,0)
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -14,3 +15,4 @@ LOCAL_CLANG := true
 LOCAL_MODULE:= libstagefright_matroska
 
 include $(BUILD_STATIC_LIBRARY)
+endif

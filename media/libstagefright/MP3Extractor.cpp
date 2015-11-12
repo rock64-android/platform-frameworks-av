@@ -675,7 +675,7 @@ bool SniffMP3(
     (*meta)->setInt64("post-id3-offset", post_id3_pos);
 
     *mimeType = MEDIA_MIMETYPE_AUDIO_MPEG;
-    *confidence = 0.2f;
+    *confidence = MP3_CONTAINER_CONFIDENCE;
 
     return true;
 }

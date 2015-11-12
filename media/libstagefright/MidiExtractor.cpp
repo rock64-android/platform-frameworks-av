@@ -313,7 +313,7 @@ bool SniffMidi(
     sp<MidiEngine> p = new MidiEngine(source, NULL, NULL);
     if (p->initCheck() == OK) {
         *mimeType = MEDIA_MIMETYPE_AUDIO_MIDI;
-        *confidence = 0.8;
+        *confidence = MIDI_CONTAINER_CONFIDENCE;
         ALOGV("SniffMidi: yes");
         return true;
     }

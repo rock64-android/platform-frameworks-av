@@ -100,7 +100,7 @@ AVIExtractor::AVISource::~AVISource() {
     }
 }
 
-status_t AVIExtractor::AVISource::start(MetaData *params) {
+status_t AVIExtractor::AVISource::start(MetaData * /*params*/) {
     CHECK(!mBufferGroup);
 
     mBufferGroup = new MediaBufferGroup;
@@ -386,7 +386,7 @@ sp<MediaSource> AVIExtractor::getTrack(size_t index) {
 }
 
 sp<MetaData> AVIExtractor::getTrackMetaData(
-        size_t index, uint32_t flags) {
+        size_t index, uint32_t /*flags*/) {
     return index < mTracks.size() ? mTracks.editItemAt(index).mMeta : NULL;
 }
 
@@ -606,7 +606,7 @@ status_t AVIExtractor::parseStreamHeader(off64_t offset, size_t size) {
 
     uint32_t type = U32_AT(data);
     uint32_t handler = U32_AT(&data[4]);
-    uint32_t flags = U32LE_AT(&data[8]);
+    //uint32_t flags = U32LE_AT(&data[8]);
 
     sp<MetaData> meta = new MetaData;
 

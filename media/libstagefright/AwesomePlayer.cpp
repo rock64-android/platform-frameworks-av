@@ -368,6 +368,14 @@ status_t AwesomePlayer::setDataSource(const sp<IStreamSource> &source __unused) 
 
 status_t AwesomePlayer::setDataSource_l(
         const sp<DataSource> &dataSource) {
+    String8 mimeType;
+    float confidence;
+    sp<AMessage> dummy;
+    if (!dataSource->sniff(&mimeType, &confidence, &dummy)) {
+        ALOGD("dataSource sniff error,please check it !");
+        return UNKNOWN_ERROR;
+    }
+    ALOGD("the format is mimeType：%s,confidence:%f",mimeType.string(),confidence); 
     sp<MediaExtractor> extractor = MediaExtractor::Create(dataSource);
 
     if (extractor == NULL) {
@@ -2496,7 +2504,7 @@ void AwesomePlayer::beginPrepareAsync_l() {
 
         if (err != OK) {
             if(mVideoSource != NULL) {
-                ALOGE("audio format is not support but video is support,play");
+                ALOGE("audio format is not support but video is support,go on"); 
             } else {
                 ALOGE("audio and video format is not support,please check it");
                 abortPrepare(err);

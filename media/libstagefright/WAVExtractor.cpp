@@ -36,11 +36,31 @@ namespace android {
 
 enum {
     WAVE_FORMAT_PCM        = 0x0001,
+    WAVE_FORMAT_ADPCM      = 0x0002,
     WAVE_FORMAT_ALAW       = 0x0006,
     WAVE_FORMAT_MULAW      = 0x0007,
+    WAVE_FORMAT_DVI_ADPCM  = 0x0011,
     WAVE_FORMAT_MSGSM      = 0x0031,
     WAVE_FORMAT_EXTENSIBLE = 0xFFFE
 };
+#define SUPPORT_ADPCM 1
+#if SUPPORT_ADPCM
+#ifndef WaveFormatExStruct
+typedef struct 
+{
+    uint16_t wFormatTag;
+    uint16_t nChannels;
+    uint32_t nSamplesPerSec;
+    uint32_t nAvgBytesPerSec;
+    uint16_t nBlockAlign;
+    uint16_t wBitsPerSample;
+    uint16_t cbSize;
+    uint16_t wSamplesPerBlock;
+} WaveFormatExStruct;
+#define MSADPCM_MAX_PCM_LENGTH          2048
+#define IMAADPCM_MAX_PCM_LENGTH         4096
+#endif//PCMWAVEFORMAT
+#endif//#if SUPPORT_ADPCM
 
 static const char* WAVEEXT_SUBFORMAT = "\x00\x00\x00\x00\x10\x00\x80\x00\x00\xAA\x00\x38\x9B\x71";
 
@@ -85,7 +105,9 @@ private:
     bool mStarted;
     MediaBufferGroup *mGroup;
     off64_t mCurrentPos;
-
+#if SUPPORT_ADPCM
+    WaveFormatExStruct *mWavExt;
+#endif//SUPPORT_ADPCM
     WAVSource(const WAVSource &);
     WAVSource &operator=(const WAVSource &);
 };
@@ -146,10 +168,18 @@ status_t WAVExtractor::init() {
         return NO_INIT;
     }
 
+    if(mDataSource->getSize((off64_t *)&mDataSize)!= OK)
+        return NO_INIT;
     size_t totalSize = U32_LE_AT(&header[4]);
 
+    if(totalSize + 8 > mDataSize)
+        totalSize = mDataSize -8;
     off64_t offset = 12;
     size_t remainingSize = totalSize;
+#if SUPPORT_ADPCM
+    WaveFormatExStruct sWaveFormat;
+    memset((void *)&sWaveFormat,0, sizeof(sWaveFormat));
+#endif//SUPPORT_ADPCM
     while (remainingSize >= 8) {
         uint8_t chunkHeader[8];
         if (mDataSource->readAt(offset, chunkHeader, 8) < 8) {
@@ -162,7 +192,15 @@ status_t WAVExtractor::init() {
         uint32_t chunkSize = U32_LE_AT(&chunkHeader[4]);
 
         if (chunkSize > remainingSize) {
-            return NO_INIT;
+            if(!memcmp(chunkHeader, "data", 4)){
+                chunkSize = remainingSize;
+            }
+            else
+            {
+                chunkHeader[4] = '\0';
+                ALOGE("chunk %s have wrong chunkSize = %d ,the remainingSize is %d",chunkHeader,chunkSize,remainingSize);
+                return NO_INIT;
+            }
         }
 
         if (!memcmp(chunkHeader, "fmt ", 4)) {
@@ -180,6 +218,10 @@ status_t WAVExtractor::init() {
                     && mWaveFormat != WAVE_FORMAT_ALAW
                     && mWaveFormat != WAVE_FORMAT_MULAW
                     && mWaveFormat != WAVE_FORMAT_MSGSM
+#if SUPPORT_ADPCM
+                    && mWaveFormat != WAVE_FORMAT_ADPCM
+                    && mWaveFormat != WAVE_FORMAT_DVI_ADPCM
+#endif
                     && mWaveFormat != WAVE_FORMAT_EXTENSIBLE) {
                 return ERROR_UNSUPPORTED;
             }
@@ -188,16 +230,51 @@ status_t WAVExtractor::init() {
             if (mWaveFormat == WAVE_FORMAT_EXTENSIBLE) {
                 fmtSize = 40;
             }
+#if SUPPORT_ADPCM
+            else if(mWaveFormat == WAVE_FORMAT_ADPCM){
+                fmtSize = sizeof(sWaveFormat);//have more data like coef ,but I don't want it
+            }else if(mWaveFormat == WAVE_FORMAT_DVI_ADPCM){
+                fmtSize = 20;
+            }
+#endif
             if (mDataSource->readAt(offset, formatSpec, fmtSize) < fmtSize) {
                 return NO_INIT;
             }
+#if SUPPORT_ADPCM
+            if(mWaveFormat == WAVE_FORMAT_ADPCM || mWaveFormat == WAVE_FORMAT_DVI_ADPCM){
+                memcpy((void *)&sWaveFormat, formatSpec, fmtSize);
 
-            mNumChannels = U16_LE_AT(&formatSpec[2]);
-            if (mWaveFormat != WAVE_FORMAT_EXTENSIBLE) {
-                if (mNumChannels != 1 && mNumChannels != 2) {
-                    ALOGW("More than 2 channels (%d) in non-WAVE_EXT, unknown channel mask",
-                            mNumChannels);
+                mNumChannels = sWaveFormat.nChannels;
+                mSampleRate =  sWaveFormat.nSamplesPerSec;
+                mBitsPerSample = sWaveFormat.wBitsPerSample;
+                if(mWaveFormat == WAVE_FORMAT_ADPCM){
+                    if ((sWaveFormat.nChannels > 2) ||
+                            (sWaveFormat.nBlockAlign > 4096) ||
+                            (sWaveFormat.wBitsPerSample != 4) ||
+                            (sWaveFormat.cbSize != 32) ||
+                            (sWaveFormat.wSamplesPerBlock > MSADPCM_MAX_PCM_LENGTH))
+                    {
+                        ALOGE("WAVE_FORMAT_ADPCM para check error");
+                        return NO_INIT;
+                    }
+                }else{
+                    if ((sWaveFormat.nChannels > 2) ||
+                            (sWaveFormat.nBlockAlign > 4096) ||
+                            (sWaveFormat.cbSize != 2) ||
+                            (sWaveFormat.wSamplesPerBlock > IMAADPCM_MAX_PCM_LENGTH))
+                    {
+                        ALOGE("WAVE_FORMAT_DVI_ADPCM para check error");
+                        return NO_INIT;
+                    }
                 }
+            }else{
+#endif//SUPPORT_ADPCM
+                mNumChannels = U16_LE_AT(&formatSpec[2]);
+                if (mWaveFormat != WAVE_FORMAT_EXTENSIBLE) {
+                    if (mNumChannels != 1 && mNumChannels != 2) {
+                        ALOGW("More than 2 channels (%d) in non-WAVE_EXT, unknown channel mask",
+                                mNumChannels);
+                    }
             } else {
                 if (mNumChannels < 1 && mNumChannels > 8) {
                     return ERROR_UNSUPPORTED;
@@ -271,7 +348,9 @@ status_t WAVExtractor::init() {
                     return ERROR_UNSUPPORTED;
                 }
             }
-
+#if SUPPORT_ADPCM
+            }
+#endif//SUPPORT_ADPCM
             mValidFormat = true;
         } else if (!memcmp(chunkHeader, "data", 4)) {
             if (mValidFormat) {
@@ -293,6 +372,14 @@ status_t WAVExtractor::init() {
                         mTrackMeta->setCString(
                                 kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_MSGSM);
                         break;
+#if SUPPORT_ADPCM
+                    case WAVE_FORMAT_ADPCM:
+                    case WAVE_FORMAT_DVI_ADPCM:
+                        mTrackMeta->setCString(
+                                kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_WAV);
+                        mTrackMeta->setData(kKeyWavExtInfo, 0, &sWaveFormat, sizeof(sWaveFormat));
+                        break;
+#endif//SUPPORT_ADPCM
                     default:
                         CHECK_EQ(mWaveFormat, (uint16_t)WAVE_FORMAT_MULAW);
                         mTrackMeta->setCString(
@@ -309,6 +396,14 @@ status_t WAVExtractor::init() {
                     // 65 bytes decode to 320 8kHz samples
                     durationUs =
                         1000000LL * (mDataSize / 65 * 320) / 8000;
+#if SUPPORT_ADPCM
+                } else if(mWaveFormat == WAVE_FORMAT_ADPCM || mWaveFormat == WAVE_FORMAT_DVI_ADPCM){
+                    uint32_t totalSamples = (mDataSize/sWaveFormat.nBlockAlign)*sWaveFormat.wSamplesPerBlock;//
+                    uint32_t duration_sec = totalSamples / mSampleRate;
+                    uint32_t duration_msec = totalSamples % mSampleRate;
+                    durationUs = (duration_msec * 1000000LL) / mSampleRate + duration_sec * 1000000LL ;
+                    mTrackMeta->setInt32(kKeySampleRate, mSampleRate);
+#endif//SUPPORT_ADPCM
                 } else {
                     size_t bytesPerSample = mBitsPerSample >> 3;
                     durationUs =
@@ -323,6 +418,7 @@ status_t WAVExtractor::init() {
         }
 
         offset += chunkSize;
+        remainingSize -= chunkSize;
     }
 
     return NO_INIT;
@@ -348,7 +444,17 @@ WAVSource::WAVSource(
       mGroup(NULL) {
     CHECK(mMeta->findInt32(kKeySampleRate, &mSampleRate));
     CHECK(mMeta->findInt32(kKeyChannelCount, &mNumChannels));
-
+#if SUPPORT_ADPCM
+    mWavExt = NULL;
+    const void * tmpData = NULL;
+    size_t tmpSize = 0;
+    uint32_t tmpType = 0;
+    if(mMeta->findData(kKeyWavExtInfo,&tmpType,&tmpData,&tmpSize)){
+        mWavExt = new WaveFormatExStruct;
+        if(mWavExt)
+            memcpy((void *)mWavExt,tmpData,sizeof(WaveFormatExStruct));
+    }
+#endif//SUPPORT_ADPCM
     mMeta->setInt32(kKeyMaxInputSize, kMaxFrameSize);
 }
 
@@ -362,7 +468,12 @@ status_t WAVSource::start(MetaData * /* params */) {
     ALOGV("WAVSource::start");
 
     CHECK(!mStarted);
-
+#if SUPPORT_ADPCM
+    if((mWaveFormat == WAVE_FORMAT_ADPCM || mWaveFormat == WAVE_FORMAT_DVI_ADPCM) && mWavExt == NULL){
+        ALOGI("ADPCM have none info, must be error");
+        return ERROR_UNSUPPORTED;
+    }
+#endif//SUPPORT_ADPCM
     mGroup = new MediaBufferGroup;
     mGroup->add_buffer(new MediaBuffer(kMaxFrameSize));
 
@@ -385,7 +496,12 @@ status_t WAVSource::stop() {
 
     delete mGroup;
     mGroup = NULL;
-
+#if SUPPORT_ADPCM
+    if(mWavExt){
+        delete mWavExt;
+        mWavExt = NULL;
+    }
+#endif//SUPPORT_ADPCM
     mStarted = false;
 
     return OK;
@@ -411,6 +527,13 @@ status_t WAVSource::read(
             int64_t samplenumber = (seekTimeUs * mSampleRate) / 1000000;
             int64_t framenumber = samplenumber / 320;
             pos = framenumber * 65;
+#if SUPPORT_ADPCM
+        } else if(mWaveFormat == WAVE_FORMAT_ADPCM|| mWaveFormat == WAVE_FORMAT_DVI_ADPCM){
+            int64_t numSamples = (seekTimeUs * mSampleRate) / 1000000LL;
+            int64_t blockCounter = numSamples/mWavExt->wSamplesPerBlock;
+            blockCounter += ((numSamples%mWavExt->wSamplesPerBlock) > (mWavExt->wSamplesPerBlock >> 1))?1:0;
+            pos = blockCounter * mWavExt->nBlockAlign;
+#endif
         } else {
             pos = (seekTimeUs * mSampleRate) / 1000000 * mNumChannels * (mBitsPerSample >> 3);
         }
@@ -426,6 +549,27 @@ status_t WAVSource::read(
         return err;
     }
 
+#if SUPPORT_ADPCM
+    if(mWaveFormat == WAVE_FORMAT_ADPCM || mWaveFormat == WAVE_FORMAT_DVI_ADPCM)
+    {
+        if(mWavExt->nBlockAlign + mCurrentPos - mOffset > mSize)
+        {
+            buffer->release();
+            buffer = NULL;
+            return ERROR_END_OF_STREAM;
+        }
+        size_t n = mDataSource->readAt(mCurrentPos, buffer->data(), mWavExt->nBlockAlign);
+        if (n <= 0)
+        {
+            buffer->release();
+            buffer = NULL;
+            return ERROR_END_OF_STREAM;
+        }
+        mCurrentPos += mWavExt->nBlockAlign;
+        buffer->meta_data()->setInt64(kKeyTime,(1000000LL*(mCurrentPos - mOffset)*mWavExt->wSamplesPerBlock)/(mWavExt->nBlockAlign*mSampleRate));
+        buffer->set_range(0, mWavExt->nBlockAlign);
+    }else{
+#endif
     // make sure that maxBytesToRead is multiple of 3, in 24-bit case
     size_t maxBytesToRead =
         mBitsPerSample == 8 ? kMaxFrameSize / 2 : 
@@ -519,9 +663,11 @@ status_t WAVSource::read(
     }
 
     buffer->meta_data()->setInt64(kKeyTime, timeStampUs);
-
-    buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
     mCurrentPos += n;
+#if SUPPORT_ADPCM
+    }
+#endif//SUPPORT_ADPCM
+    buffer->meta_data()->setInt32(kKeyIsSyncFrame, 1);
 
     *out = buffer;
 
@@ -548,7 +694,7 @@ bool SniffWAV(
     }
 
     *mimeType = MEDIA_MIMETYPE_CONTAINER_WAV;
-    *confidence = 0.3f;
+    *confidence = WAV_CONTAINER_CONFIDENCE;
 
     return true;
 }

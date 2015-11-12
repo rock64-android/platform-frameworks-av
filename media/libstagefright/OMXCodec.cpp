@@ -600,8 +600,12 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
         if (!meta->findInt32(kKeyIsADTS, &isADTS)) {
             isADTS = false;
         }
+		int32_t isLATM;
+		if(!meta->findInt32(kKeyIsLATM, &isLATM)){
+			isLATM = false;
+		}
 
-        status_t err = setAACFormat(numChannels, sampleRate, bitRate, aacProfile, isADTS);
+        status_t err = setAACFormat(numChannels, sampleRate, bitRate, aacProfile, isADTS,isLATM);
         if (err != OK) {
             CODEC_LOGE("setAACFormat() failed (err = %d)", err);
             return err;
@@ -1304,6 +1308,14 @@ status_t OMXCodec::setVideoOutputFormat(
         compressionFormat = OMX_VIDEO_CodingVP9;
     } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_MPEG2, mime)) {
         compressionFormat = OMX_VIDEO_CodingMPEG2;
+    } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_VC1, mime)) {
+        compressionFormat = (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingVC1;
+    } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_WMV3, mime)) {
+        compressionFormat = (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingWMV;
+    } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_FLV, mime)) {
+        compressionFormat = (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingFLV1;
+    } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_MJPEG, mime)) {
+        compressionFormat = (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingMJPEG;
     } else {
         ALOGE("Not a supported video mime type: %s", mime);
         CHECK(!"Should not be here. Not a supported video mime type.");
@@ -3322,7 +3334,7 @@ void OMXCodec::setAMRFormat(bool isWAMR, int32_t bitRate) {
 }
 
 status_t OMXCodec::setAACFormat(
-        int32_t numChannels, int32_t sampleRate, int32_t bitRate, int32_t aacProfile, bool isADTS) {
+        int32_t numChannels, int32_t sampleRate, int32_t bitRate, int32_t aacProfile, bool isADTS, bool isLATM) {
     if (numChannels > 2) {
         ALOGW("Number of channels: (%d) \n", numChannels);
     }
@@ -3381,6 +3393,9 @@ status_t OMXCodec::setAACFormat(
         profile.nAACtools = OMX_AUDIO_AACToolAll;
         profile.nAACERtools = OMX_AUDIO_AACERNone;
         profile.eAACProfile = (OMX_AUDIO_AACPROFILETYPE) aacProfile;
+		if(isLATM)
+			profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4LATM;
+		else
         profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4FF;
         err = mOMX->setParameter(mNode, OMX_IndexParamAudioAac,
                 &profile, sizeof(profile));
@@ -3402,7 +3417,9 @@ status_t OMXCodec::setAACFormat(
 
         profile.nChannels = numChannels;
         profile.nSampleRate = sampleRate;
-
+		if(isLATM)
+			profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4LATM;
+		else
         profile.eAACStreamFormat =
             isADTS
                 ? OMX_AUDIO_AACStreamFormatMP4ADTS

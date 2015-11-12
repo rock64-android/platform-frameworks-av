@@ -3861,7 +3861,7 @@ retry:
     }
 
     if(!strncmp("OMX.rk",mComponentName,6)){
-        ALOGV("mFilledBuffers size = %d",mFilledBuffers.size());
+        ALOGV("mFilledBuffers size = %zu",mFilledBuffers.size());
     }
     size_t index = *mFilledBuffers.begin();
     mFilledBuffers.erase(mFilledBuffers.begin());

@@ -2495,8 +2495,13 @@ void AwesomePlayer::beginPrepareAsync_l() {
         status_t err = initAudioDecoder();
 
         if (err != OK) {
-            abortPrepare(err);
-            return;
+            if(mVideoSource != NULL) {
+                ALOGE("audio format is not support but video is support,play");
+            } else {
+                ALOGE("audio and video format is not support,please check it");
+                abortPrepare(err);
+                return;
+            }
         }
     }
 

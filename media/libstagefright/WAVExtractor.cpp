@@ -198,7 +198,7 @@ status_t WAVExtractor::init() {
             else
             {
                 chunkHeader[4] = '\0';
-                ALOGE("chunk %s have wrong chunkSize = %d ,the remainingSize is %d",chunkHeader,chunkSize,remainingSize);
+                ALOGE("chunk %s have wrong chunkSize = %d ,the remainingSize is %zu",chunkHeader,chunkSize,remainingSize);
                 return NO_INIT;
             }
         }
@@ -552,7 +552,7 @@ status_t WAVSource::read(
 #if SUPPORT_ADPCM
     if(mWaveFormat == WAVE_FORMAT_ADPCM || mWaveFormat == WAVE_FORMAT_DVI_ADPCM)
     {
-        if(mWavExt->nBlockAlign + mCurrentPos - mOffset > mSize)
+        if((unsigned long)(mWavExt->nBlockAlign + mCurrentPos - mOffset) > mSize)
         {
             buffer->release();
             buffer = NULL;

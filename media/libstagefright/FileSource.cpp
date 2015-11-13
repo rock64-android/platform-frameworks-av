@@ -193,7 +193,7 @@ sp<DecryptHandle> FileSource::DrmInitialization(const char *mime) {
                     ALOGE("DrmInitialization closeDecryptSession");
                     mDrmManagerClient->closeDecryptSession(mDecryptHandle);
                     mDecryptHandle = NULL;
-                    ALOGE("drm plaindata length is not more than 0>>consumerights return %lld", mLength);
+                    ALOGE("drm plaindata length is not more than 0>>consumerights return %ld", (long)mLength);
                 }
                 break;
             }
@@ -221,7 +221,7 @@ ssize_t FileSource::readAtDRM(off64_t offset, void *data, size_t size) {
     }
 
     if (mDrmBuf != NULL && mDrmBufSize > 0 && (offset + mOffset) >= mDrmBufOffset
-            && (offset + mOffset + size) <= (mDrmBufOffset + mDrmBufSize)) {
+            && (offset + mOffset + size) <= (unsigned long)(mDrmBufOffset + mDrmBufSize)) {
         /* Use buffered data */
         memcpy(data, (void*)(mDrmBuf+(offset+mOffset-mDrmBufOffset)), size);
         return size;
@@ -232,7 +232,7 @@ ssize_t FileSource::readAtDRM(off64_t offset, void *data, size_t size) {
                 DRM_CACHE_SIZE, offset + mOffset);
         if (mDrmBufSize > 0) {
             int64_t dataRead = 0;
-            dataRead = size > mDrmBufSize ? mDrmBufSize : size;
+            dataRead = size > (unsigned long)mDrmBufSize ? mDrmBufSize : size;
             memcpy(data, (void*)mDrmBuf, dataRead);
             return dataRead;
         } else {

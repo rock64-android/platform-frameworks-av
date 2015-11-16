@@ -350,6 +350,8 @@ static VideoFrame *extractVideoFrame(
     CHECK(outputFormat->findInt32("width", &width));
     CHECK(outputFormat->findInt32("height", &height));
 
+    width = (width + 3)&(~3);
+    height = (height + 3)&(~3);
     int32_t crop_left, crop_top, crop_right, crop_bottom;
     if (!outputFormat->findRect("crop", &crop_left, &crop_top, &crop_right, &crop_bottom)) {
         crop_left = crop_top = 0;
@@ -365,8 +367,8 @@ static VideoFrame *extractVideoFrame(
     VideoFrame *frame = new VideoFrame;
     frame->mWidth = crop_right - crop_left + 1;
     frame->mHeight = crop_bottom - crop_top + 1;
-    frame->mDisplayWidth = frame->mWidth;
-    frame->mDisplayHeight = frame->mHeight;
+    frame->mDisplayWidth = crop_right - crop_left;
+    frame->mDisplayHeight = crop_bottom - crop_top;
     frame->mSize = frame->mWidth * frame->mHeight * 2;
     frame->mData = new uint8_t[frame->mSize];
     frame->mRotationAngle = rotationAngle;
@@ -476,12 +478,25 @@ VideoFrame *StagefrightMetadataRetriever::getFrameAtTime(
     const char *mime;
     CHECK(trackMeta->findCString(kKeyMIMEType, &mime));
 
+    int32_t flags = OMXCodec::kHardwareCodecsOnly;
+
+#ifdef USE_SOFT_HEVC
+    if(!strncasecmp(mime, "video/hevc", 10)) {
+        flags = OMXCodec::kSoftwareCodecsOnly;
+    }
+#endif
+
+    if(!strncasecmp(mime, "video/x-vnd.on2.vp9", 19))
+    {
+        flags = OMXCodec::kSoftwareCodecsOnly;
+    }
+
     Vector<OMXCodec::CodecNameAndQuirks> matchingCodecs;
     OMXCodec::findMatchingCodecs(
             mime,
             false, /* encoder */
             NULL, /* matchComponentName */
-            OMXCodec::kPreferSoftwareCodecs,
+            flags,//OMXCodec::kPreferSoftwareCodecs,
             &matchingCodecs);
 
     for (size_t i = 0; i < matchingCodecs.size(); ++i) {

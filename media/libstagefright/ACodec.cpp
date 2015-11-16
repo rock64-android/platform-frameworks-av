@@ -5499,7 +5499,17 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
         }
     } else {
         CHECK(msg->findString("mime", &mime));
-
+        int32_t flags = OMXCodec::kHardwareCodecsOnly;
+#ifdef USE_SOFT_HEVC
+        if(!strncasecmp(mime.c_str(), "video/hevc", 10)) {
+            flags = OMXCodec::kSoftwareCodecsOnly;
+        }
+#endif
+        if((!strncasecmp(mime.c_str(), "audio/", 6)) ||
+            (!strncasecmp(mime.c_str(), "video/x-vnd.on2.vp9", 19)))
+        {
+            flags = OMXCodec::kSoftwareCodecsOnly;
+        }
         if (!msg->findInt32("encoder", &encoder)) {
             encoder = false;
         }

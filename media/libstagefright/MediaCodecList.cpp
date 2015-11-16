@@ -728,7 +728,9 @@ status_t MediaCodecList::addMediaCodecFromAttributes(
             }
             mCurrentInfo->updateMime(type);
         }
-    } else {
+    }
+#if 1
+    else {
         // new codec
         mCurrentInfo = new MediaCodecInfo(name, encoder, type);
         // The next step involves trying to load the codec, which may
@@ -739,7 +741,7 @@ status_t MediaCodecList::addMediaCodecFromAttributes(
             mCodecInfos.push_back(mCurrentInfo);
         }
     }
-
+#endif
     return OK;
 }
 

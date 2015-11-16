@@ -136,11 +136,14 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               int64_t length) {
     String8 filePath;
     getFileName(dup(fd),&filePath);
+#ifndef USE_FFPLAYER
     if(strstr(filePath.string(),".mpg") || strstr(filePath.string(),".avi")
-	    || strstr(filePath.string(),".ts"))
+        || strstr(filePath.string(),".ts") || strstr(filePath.string(),".flac")
+        || strstr(filePath.string(),".wav"))
     {
         return STAGEFRIGHT_PLAYER;
     } 
+#endif
     GET_PLAYER_TYPE_IMPL(client, fd, offset, length);
 }
 

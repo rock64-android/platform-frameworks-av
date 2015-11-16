@@ -214,7 +214,6 @@ bool DataSource::sniff(
         }
         else
         {
-            ALOGD("mime:%s is not support",mime_lower);;
         }
         for(int i = 0;i < func_count;i++)
         {

@@ -25,8 +25,10 @@
 
 #include <utils/Log.h>
 
+#include "include/FLACDecoder.h"
 #include "include/AACEncoder.h"
 
+#include "include/RkAudioDecoder.h"
 #include "include/ESDS.h"
 
 #include <binder/IServiceManager.h>
@@ -47,6 +49,9 @@
 #include <media/stagefright/Utils.h>
 #include <media/stagefright/SkipCutBuffer.h>
 #include <utils/Vector.h>
+#include <cutils/properties.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 
 #include <OMX_AudioExt.h>
 #include <OMX_Component.h>
@@ -69,6 +74,14 @@ const static int64_t kBufferFilledEventTimeOutNs = 3000000000LL;
 // component in question is buggy or not.
 const static uint32_t kMaxColorFormatSupported = 1000;
 
+struct CodecInfo {
+    const char *mime;
+    const char *codec;
+};
+#define FACTORY_CREATE(name) \
+static sp<MediaSource> Make##name(const sp<MediaSource> &source) { \
+    return new name(source); \
+}
 #define FACTORY_CREATE_ENCODER(name) \
 static sp<MediaSource> Make##name(const sp<MediaSource> &source, const sp<MetaData> &meta) { \
     return new name(source, meta); \
@@ -76,6 +89,7 @@ static sp<MediaSource> Make##name(const sp<MediaSource> &source, const sp<MetaDa
 
 #define FACTORY_REF(name) { #name, Make##name },
 
+FACTORY_CREATE(FLACDecoder)
 FACTORY_CREATE_ENCODER(AACEncoder)
 
 static sp<MediaSource> InstantiateSoftwareEncoder(
@@ -99,6 +113,59 @@ static sp<MediaSource> InstantiateSoftwareEncoder(
     return NULL;
 }
 
+static sp<MediaSource> InstantiateSoftwareCodec(
+        const char *name, const sp<MediaSource> &source) {
+    struct FactoryInfo {
+        const char *name;
+        sp<MediaSource> (*CreateFunc)(const sp<MediaSource> &);
+    };
+    static const FactoryInfo kFactoryInfo[] = {
+        FACTORY_REF(FLACDecoder)
+    };
+    ALOGI("--->InstantiateSoftwareCodec create %s codec",name);
+    char *codecName = NULL;
+    if(strstr(name,"RkAudioDecoder")){
+        codecName = strstr(name,"RkAudioDecoder");
+        codecName += strlen("RkAudioDecoder") + 1;
+        const char * decoderType = codecName;
+        return CreateRkAudioDecoderFactory(source, decoderType);
+    }
+    for (size_t i = 0;
+            i < sizeof(kFactoryInfo) / sizeof(kFactoryInfo[0]); ++i) {
+        if (!strcmp(name, kFactoryInfo[i].name)) {
+            char value[PROPERTY_VALUE_MAX];
+            char substring[PROPERTY_VALUE_MAX];
+            if((property_get("media.decoder.cfg", value, NULL)) &&
+                    (strcmp(name, "RkVpuDecoder")))
+            {
+                char *subname;
+                subname = strstr(name,"Decoder");
+                if(subname)
+                {
+                    int offset = subname - name;
+                    memcpy(substring,name,offset);
+                    substring[offset] = '\0';
+                    if(!strcmp(substring,"WMAPRO"))
+                    {
+                        return (*kFactoryInfo[i].CreateFunc)(source);
+                    }
+                    if (strstr(value,substring)){
+                        return (*kFactoryInfo[i].CreateFunc)(source);
+                    }
+                }
+                else
+                {
+                    ALOGE("InstantiateSoftwareCodec, Decoder return NULL");
+                }
+            }
+            else
+            {
+                return (*kFactoryInfo[i].CreateFunc)(source);
+            }
+        }
+    }
+    return NULL;
+}
 #undef FACTORY_CREATE_ENCODER
 #undef FACTORY_REF
 
@@ -336,16 +403,16 @@ sp<MediaSource> OMXCodec::Create(
             componentName = tmp.c_str();
         }
 
-        if (createEncoder) {
-            sp<MediaSource> softwareCodec =
-                InstantiateSoftwareEncoder(componentName, source, meta);
+        sp<MediaSource> softwareCodec = createEncoder?
+            InstantiateSoftwareEncoder(componentName, source, meta):
+            InstantiateSoftwareCodec(componentName, source);
 
             if (softwareCodec != NULL) {
                 ALOGV("Successfully allocated software codec '%s'", componentName);
 
                 return softwareCodec;
             }
-        }
+
 
         ALOGV("Attempting to allocate OMX node '%s'", componentName);
 
@@ -442,6 +509,11 @@ status_t OMXCodec::parseAVCCodecSpecificData(
         const void *data, size_t size,
         unsigned *profile, unsigned *level) {
     const uint8_t *ptr = (const uint8_t *)data;
+    if((size > 4)&& (ptr[0] == 0) && (ptr[1] == 0)
+        && (ptr[2] ==0) && (ptr[3] == 0x01)){
+        addCodecSpecificData(ptr, size);
+        return OK;
+    }
 
     // verify minimum size and configurationVersion == 1.
     if (size < 7 || ptr[0] != 1) {
@@ -576,6 +648,8 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
             addCodecSpecificData(data, size);
             CHECK(meta->findData(kKeyOpusSeekPreRoll, &type, &data, &size));
             addCodecSpecificData(data, size);
+        }else if (meta->findData(kKeyExtraData, &type, &data, &size)) {
+            addCodecSpecificData(data, size);
         }
     }
 
@@ -600,10 +674,10 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
         if (!meta->findInt32(kKeyIsADTS, &isADTS)) {
             isADTS = false;
         }
-		int32_t isLATM;
-		if(!meta->findInt32(kKeyIsLATM, &isLATM)){
-			isLATM = false;
-		}
+        int32_t isLATM;
+        if(!meta->findInt32(kKeyIsLATM, &isLATM)){
+            isLATM = false;
+        }
 
         status_t err = setAACFormat(numChannels, sampleRate, bitRate, aacProfile, isADTS,isLATM);
         if (err != OK) {
@@ -1898,7 +1972,7 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
                 newBufferCount, err);
             /* exit condition */
             if (extraBuffers == 0) {
-            	return err;
+                return err;
             }
         }else{
             minUndequeuedBufs += extraBuffers;
@@ -2394,7 +2468,7 @@ void OMXCodec::onEvent(OMX_EVENTTYPE event, OMX_U32 data1, OMX_U32 data2) {
 #if 0
         case OMX_EventBufferFlag:
         {
-            CODEC_LOGV("EVENT_BUFFER_FLAG(%ld)", data1);
+            CODEC_LOGV("EVENT_BUFFER_FLAG(%u)", data1);
 
             if (data1 == kPortIndexOutput) {
                 mNoMoreOutputData = true;
@@ -3393,10 +3467,10 @@ status_t OMXCodec::setAACFormat(
         profile.nAACtools = OMX_AUDIO_AACToolAll;
         profile.nAACERtools = OMX_AUDIO_AACERNone;
         profile.eAACProfile = (OMX_AUDIO_AACPROFILETYPE) aacProfile;
-		if(isLATM)
-			profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4LATM;
-		else
-        profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4FF;
+        if(isLATM)
+            profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4LATM;
+        else
+            profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4FF;
         err = mOMX->setParameter(mNode, OMX_IndexParamAudioAac,
                 &profile, sizeof(profile));
 
@@ -3417,10 +3491,10 @@ status_t OMXCodec::setAACFormat(
 
         profile.nChannels = numChannels;
         profile.nSampleRate = sampleRate;
-		if(isLATM)
-			profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4LATM;
-		else
-        profile.eAACStreamFormat =
+        if(isLATM)
+            profile.eAACStreamFormat = OMX_AUDIO_AACStreamFormatMP4LATM;
+        else
+            profile.eAACStreamFormat =
             isADTS
                 ? OMX_AUDIO_AACStreamFormatMP4ADTS
                 : OMX_AUDIO_AACStreamFormatMP4FF;
@@ -4347,6 +4421,12 @@ status_t QueryCodec(
         const char *componentName, const char *mime,
         bool isEncoder,
         CodecCapabilities *caps) {
+    if (strncmp(componentName, "OMX.", 4)) {
+        // Not an OpenMax component but a software codec.
+        caps->mFlags = 0;
+        caps->mComponentName = componentName;
+        return OK;
+    }
     bool isVideo = !strncasecmp(mime, "video/", 6);
 
     sp<OMXCodecObserver> observer = new OMXCodecObserver;

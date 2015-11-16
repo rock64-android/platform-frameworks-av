@@ -11,6 +11,11 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 include frameworks/av/media/libstagefright/codecs/common/Config.mk
 
+
+ifneq ($(filter rk312x rk3188, $(TARGET_BOARD_PLATFORM)), )
+	LOCAL_CFLAGS += -DUSE_SOFT_HEVC
+endif
+
 LOCAL_SRC_FILES:=                         \
         ACodec.cpp                        \
         AACExtractor.cpp                  \
@@ -52,6 +57,7 @@ LOCAL_SRC_FILES:=                         \
         MidiExtractor.cpp                 \
         http/MediaHTTP.cpp                \
         ExtendedExtractor.cpp             \
+        RkAudioDecoder.cpp                \
         MediaMuxer.cpp                    \
         MediaSource.cpp                   \
         MetaData.cpp                      \
@@ -88,6 +94,7 @@ LOCAL_C_INCLUDES:= \
         $(TOP)/external/tremolo \
         $(TOP)/external/libvpx/libwebm \
         $(TOP)/system/netd/include \
+        $(TOP)/hardware/rockchip/librkvpu\
 
 LOCAL_SHARED_LIBRARIES := \
         libbinder \
@@ -113,12 +120,14 @@ LOCAL_SHARED_LIBRARIES := \
         libutils \
         libvorbisidec \
         libz \
-        libpowermanager
+        libpowermanager \
+        librk_vpuapi \
 
 LOCAL_STATIC_LIBRARIES := \
         libstagefright_color_conversion \
         libstagefright_aacenc \
         libstagefright_mediafilter \
+        libstagefright_flacdec\
         libstagefright_webm \
         libstagefright_timedtext \
         libvpx \
@@ -135,7 +144,7 @@ LOCAL_SHARED_LIBRARIES += \
         libstagefright_foundation \
         libdl \
         libRScpp \
-
+        libvpu
 LOCAL_CFLAGS += -Wno-multichar -Werror -Wno-error=deprecated-declarations -Wall
 
 # enable experiments only in userdebug and eng builds

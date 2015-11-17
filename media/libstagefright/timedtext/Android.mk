@@ -5,6 +5,7 @@ LOCAL_SRC_FILES:=                 \
         TextDescriptions.cpp      \
         TimedTextDriver.cpp       \
         TimedText3GPPSource.cpp \
+        TimedTextMatroskaSource.cpp \
         TimedTextSource.cpp       \
         TimedTextSRTSource.cpp    \
         TimedTextPlayer.cpp
@@ -14,7 +15,10 @@ LOCAL_CLANG := true
 
 LOCAL_C_INCLUDES:= \
         $(TOP)/frameworks/av/include/media/stagefright/timedtext \
-        $(TOP)/frameworks/av/media/libstagefright
+        $(TOP)/frameworks/av/media/libstagefright \
+        $(TOP)/frameworks/av/media/libstagefright/libvpu/common \
+        $(TOP)/frameworks/av/media/libstagefright/libvpu/common/include \
+        $(TOP)/hardware/rockchip/librkvpu
 
 LOCAL_MODULE:= libstagefright_timedtext
 

@@ -28,6 +28,7 @@ public:
     enum {
         IN_BAND_TEXT_3GPP             = 0x01,
         OUT_OF_BAND_TEXT_SRT          = 0x02,
+        IN_BAND_TEXT_MATROSKA         = 0x04,
 
         GLOBAL_DESCRIPTIONS           = 0x100,
         LOCAL_DESCRIPTIONS            = 0x200,
@@ -74,6 +75,9 @@ private:
             const uint8_t *data, ssize_t size,
             Parcel *parcel);
     static status_t extract3GPPLocalDescriptions(
+            const uint8_t *data, ssize_t size,
+            int timeMs, Parcel *parcel);
+    static status_t extractMatroskaLocalDescriptions(
             const uint8_t *data, ssize_t size,
             int timeMs, Parcel *parcel);
 

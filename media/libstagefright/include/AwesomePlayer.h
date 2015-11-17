@@ -46,6 +46,8 @@ class DecryptHandle;
 
 class TimedTextDriver;
 class WVMExtractor;
+class FrameQueueManage;
+struct FrameQueue;
 
 struct AwesomeRenderer : public RefBase {
     AwesomeRenderer() {}
@@ -107,6 +109,7 @@ struct AwesomePlayer {
     void postAudioEOS(int64_t delayUs = 0ll);
     void postAudioSeekComplete();
     void postAudioTearDown();
+    FrameQueueManage *pfrmanager;
     status_t dump(int fd, const Vector<String16> &args) const;
 
 private:
@@ -177,8 +180,10 @@ private:
     bool mVideoRendererIsPreview;
     int32_t mMediaRenderingStartGeneration;
     int32_t mStartGeneration;
+    ssize_t mActiveVideoTrackIndex;
 
     ssize_t mActiveAudioTrackIndex;
+    String8 filePath;
     sp<MediaSource> mAudioTrack;
     sp<MediaSource> mOmxSource;
     sp<MediaSource> mAudioSource;
@@ -209,6 +214,7 @@ private:
 
     int64_t mBitrate;  // total bitrate of the file (in bps) or -1 if unknown.
 
+    int64_t started_realtime;
     bool mWatchForAudioSeekComplete;
     bool mWatchForAudioEOS;
 
@@ -250,6 +256,7 @@ private:
 
     int64_t mLastVideoTimeUs;
     TimedTextDriver *mTextDriver;
+    ssize_t mActiveTextTrackIndex;
 
     sp<WVMExtractor> mWVMExtractor;
     sp<MediaExtractor> mExtractor;
@@ -261,6 +268,7 @@ private:
 
     status_t setDataSource_l(const sp<DataSource> &dataSource);
     status_t setDataSource_l(const sp<MediaExtractor> &extractor);
+    String8 mMime;
     void reset_l();
     status_t seekTo_l(int64_t timeUs);
     status_t pause_l(bool at_eos = false);
@@ -366,7 +374,11 @@ private:
     status_t selectTrack(size_t trackIndex, bool select);
 
     size_t countTracks() const;
-
+    int64_t preMediaTimeus;
+    int64_t mPreSeekTimeUs;
+    int64_t mPreSeekSysTimeUs;
+    bool wireless_player_flag;
+    uint32_t Resver[41];
     AwesomePlayer(const AwesomePlayer &);
     AwesomePlayer &operator=(const AwesomePlayer &);
 };

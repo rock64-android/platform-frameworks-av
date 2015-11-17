@@ -175,9 +175,14 @@ private:
 struct AwesomeNativeWindowRenderer : public AwesomeRenderer {
     AwesomeNativeWindowRenderer(
             const sp<ANativeWindow> &nativeWindow,
-            int32_t rotationDegrees)
-        : mNativeWindow(nativeWindow) {
+            int32_t rotationDegrees,int32_t width,int32_t height,int32_t is_hevc)
+        : mNativeWindow(nativeWindow),
+        power_fd(-1),
+        mWidth(width),
+        mHeight(height),
+        mIshevc(is_hevc){
         applyRotation(rotationDegrees);
+        openVideoPowerControl();
     }
 
     virtual void render(MediaBuffer *buffer) {
@@ -197,12 +202,46 @@ struct AwesomeNativeWindowRenderer : public AwesomeRenderer {
         metaData->setInt32(kKeyRendered, 1);
     }
 
+    void openVideoPowerControl(){
+        char prop_value[PROPERTY_VALUE_MAX];
+        if(property_get("sf.power.control", prop_value, NULL)&& atoi(prop_value) > 0){
+            power_fd = open("/dev/video_state", O_WRONLY);
+            if(power_fd == -1){
+                ALOGE("power control open fd fail");
+                return;
+            }
+            ALOGV("power control open fd suceess and write to 1");
+            char para[200]={0};
+            int paraLen = 0;
+            paraLen = sprintf(para, "1,width=%d,height=%d,ishevc=%d,videoFramerate=%d,streamBitrate=%d",mWidth,mHeight,mIshevc,0,0);
+            write(power_fd, para, paraLen);
+        }
+    }
+    void closeVideoPowerControl(){
+        char prop_value[PROPERTY_VALUE_MAX];
+        if(property_get("sf.power.control", prop_value, NULL) && atoi(prop_value) > 0){
+            char para[200]={0};
+            int paraLen = 0;
+            paraLen = sprintf(para, "0,width=%d,height=%d,ishevc=%d,videoFramerate=%d,streamBitrate=%d",mWidth,mHeight,mIshevc,0,0);
+            if(power_fd > 0){
+                ALOGV("power control close fd and write to 0");
+                write(power_fd, para, paraLen);
+                close(power_fd);
+                power_fd = -1;
+            }
+        }
+    }
 protected:
-    virtual ~AwesomeNativeWindowRenderer() {}
+    virtual ~AwesomeNativeWindowRenderer() {
+        closeVideoPowerControl();
+    }
 
 private:
     sp<ANativeWindow> mNativeWindow;
-
+    int32_t power_fd;
+    int32_t mWidth;
+    int32_t mHeight;
+    int32_t mIshevc;
     void applyRotation(int32_t rotationDegrees) {
         uint32_t transform;
         switch (rotationDegrees) {
@@ -1352,7 +1391,7 @@ void AwesomePlayer::initRenderer_l() {
         // directly to ANativeBuffers, so we must use a renderer that
         // just pushes those buffers to the ANativeWindow.
         mVideoRenderer =
-            new AwesomeNativeWindowRenderer(mNativeWindow, rotationDegrees);
+            new AwesomeNativeWindowRenderer(mNativeWindow, rotationDegrees,decodedWidth,decodedHeight,ishevc);
     } else {
         // Other decoders are instantiated locally and as a consequence
         // allocate their buffers in local address space.  This renderer

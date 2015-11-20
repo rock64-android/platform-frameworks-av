@@ -265,10 +265,7 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
     }
 
     unsigned PES_packet_length = U16_AT(mBuffer->data() + 4);
-    if (PES_packet_length == 0u) {
-        ALOGE("PES_packet_length is 0");
-        return -EAGAIN;
-    }
+    CHECK_NE(PES_packet_length, 0u);
 
     size_t n = PES_packet_length + 6;
 
@@ -289,10 +286,7 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
         return ERROR_MALFORMED;
     }
 
-    if (packet_startcode_prefix != 0x000001u) {
-        ALOGE("Wrong PES prefix");
-        return ERROR_MALFORMED;
-    }
+    CHECK_EQ(packet_startcode_prefix, 0x000001u);
 
     unsigned stream_id = br.getBits(8);
     ALOGV("stream_id = 0x%02x", stream_id);
@@ -372,7 +366,8 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
             && stream_id != 0xff  // program_stream_directory
             && stream_id != 0xf2  // DSMCC
             && stream_id != 0xf8) {  // H.222.1 type E
-        /* unsigned PES_marker_bits = */br.getBits(2);  // should be 0x2(hex)
+        CHECK_EQ(br.getBits(2), 2u);
+
         /* unsigned PES_scrambling_control = */br.getBits(2);
         /* unsigned PES_priority = */br.getBits(1);
         /* unsigned data_alignment_indicator = */br.getBits(1);
@@ -405,26 +400,16 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
         uint64_t PTS = 0, DTS = 0;
 
         if (PTS_DTS_flags == 2 || PTS_DTS_flags == 3) {
-            if (optional_bytes_remaining < 5u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_GE(optional_bytes_remaining, 5u);
 
-            if (br.getBits(4) != PTS_DTS_flags) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(4), PTS_DTS_flags);
 
             PTS = ((uint64_t)br.getBits(3)) << 30;
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
             PTS |= ((uint64_t)br.getBits(15)) << 15;
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
             PTS |= br.getBits(15);
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
 
             ALOGV("PTS = %" PRIu64, PTS);
             // ALOGI("PTS = %.2f secs", PTS / 90000.0f);
@@ -432,26 +417,16 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
             optional_bytes_remaining -= 5;
 
             if (PTS_DTS_flags == 3) {
-                if (optional_bytes_remaining < 5u) {
-                    return ERROR_MALFORMED;
-                }
+                CHECK_GE(optional_bytes_remaining, 5u);
 
-                if (br.getBits(4) != 1u) {
-                    return ERROR_MALFORMED;
-                }
+                CHECK_EQ(br.getBits(4), 1u);
 
                 DTS = ((uint64_t)br.getBits(3)) << 30;
-                if (br.getBits(1) != 1u) {
-                    return ERROR_MALFORMED;
-                }
+                CHECK_EQ(br.getBits(1), 1u);
                 DTS |= ((uint64_t)br.getBits(15)) << 15;
-                if (br.getBits(1) != 1u) {
-                    return ERROR_MALFORMED;
-                }
+                CHECK_EQ(br.getBits(1), 1u);
                 DTS |= br.getBits(15);
-                if (br.getBits(1) != 1u) {
-                    return ERROR_MALFORMED;
-                }
+                CHECK_EQ(br.getBits(1), 1u);
 
                 ALOGV("DTS = %" PRIu64, DTS);
 
@@ -460,62 +435,40 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
         }
 
         if (ESCR_flag) {
-            if (optional_bytes_remaining < 6u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_GE(optional_bytes_remaining, 6u);
 
             br.getBits(2);
 
             uint64_t ESCR = ((uint64_t)br.getBits(3)) << 30;
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
             ESCR |= ((uint64_t)br.getBits(15)) << 15;
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
             ESCR |= br.getBits(15);
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
 
             ALOGV("ESCR = %" PRIu64, ESCR);
             /* unsigned ESCR_extension = */br.getBits(9);
 
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
 
             optional_bytes_remaining -= 6;
         }
 
         if (ES_rate_flag) {
-            if (optional_bytes_remaining < 3u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_GE(optional_bytes_remaining, 3u);
 
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
             /* unsigned ES_rate = */br.getBits(22);
-            if (br.getBits(1) != 1u) {
-                return ERROR_MALFORMED;
-            }
+            CHECK_EQ(br.getBits(1), 1u);
 
             optional_bytes_remaining -= 3;
-        }
-
-        if (br.numBitsLeft() < optional_bytes_remaining * 8) {
-            return ERROR_MALFORMED;
         }
 
         br.skipBits(optional_bytes_remaining * 8);
 
         // ES data follows.
 
-        if (PES_packet_length < PES_header_data_length + 3) {
-            return ERROR_MALFORMED;
-        }
+        CHECK_GE(PES_packet_length, PES_header_data_length + 3);
 
         unsigned dataLength =
             PES_packet_length - 3 - PES_header_data_length;
@@ -528,9 +481,7 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
             return ERROR_MALFORMED;
         }
 
-        if (br.numBitsLeft() < dataLength * 8) {
-            return ERROR_MALFORMED;
-        }
+        CHECK_GE(br.numBitsLeft(), dataLength * 8);
 
         ssize_t index = mTracks.indexOfKey(stream_id);
         if (index < 0 && mScanning) {
@@ -570,14 +521,10 @@ ssize_t MPEG2PSExtractor::dequeuePES() {
             return err;
         }
     } else if (stream_id == 0xbe) {  // padding_stream
-        if (PES_packet_length == 0u) {
-            return ERROR_MALFORMED;
-        }
+        CHECK_NE(PES_packet_length, 0u);
         br.skipBits(PES_packet_length * 8);
     } else {
-        if (PES_packet_length == 0u) {
-            return ERROR_MALFORMED;
-        }
+        CHECK_NE(PES_packet_length, 0u);
         br.skipBits(PES_packet_length * 8);
     }
 
@@ -600,16 +547,16 @@ MPEG2PSExtractor::Track::Track(
             mode = ElementaryStreamQueue::H264;
             break;
         case ATSParser::STREAMTYPE_MPEG2_AUDIO_ADTS:
-            mode = ElementaryStreamQueue::AAC;
+            mode = ElementaryStreamQueue::AAC_ADTS;
             break;
         case ATSParser::STREAMTYPE_MPEG1_AUDIO:
         case ATSParser::STREAMTYPE_MPEG2_AUDIO:
-            mode = ElementaryStreamQueue::MPEG_AUDIO;
+            mode = ElementaryStreamQueue::MP3;
             break;
 
         case ATSParser::STREAMTYPE_MPEG1_VIDEO:
         case ATSParser::STREAMTYPE_MPEG2_VIDEO:
-            mode = ElementaryStreamQueue::MPEG_VIDEO;
+            mode = ElementaryStreamQueue::MPEG2;
             break;
 
         case ATSParser::STREAMTYPE_MPEG4_VIDEO:
@@ -700,7 +647,7 @@ status_t MPEG2PSExtractor::Track::appendPESData(
         return err;
     }
 
-    sp<ABuffer> accessUnit;
+    MediaBuffer* accessUnit;
     while ((accessUnit = mQueue->dequeueAccessUnit()) != NULL) {
         if (mSource == NULL) {
             sp<MetaData> meta = mQueue->getFormat();
@@ -761,7 +708,7 @@ bool SniffMPEG2PS(
         return false;
     }
 
-    *confidence = MPEG2PS_CONTAINER_CONFIDENCE ;  // Slightly larger than .mp3 extractor's confidence
+    *confidence = 0.25f;  // Slightly larger than .mp3 extractor's confidence
 
     mimeType->setTo(MEDIA_MIMETYPE_CONTAINER_MPEG2PS);
 

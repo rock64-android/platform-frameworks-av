@@ -212,6 +212,12 @@ bool DataSource::sniff(
             func[0] = SniffFLAC;
             func_count = 1;
         }
+        /*else if(mime_lower[0] =='m' && mime_lower[1]=='p' && mime_lower[2]=='g' && mime_lower[3]=='c' &&mime_lower[4]=='\0')
+        {
+            ALOGE("mpeg \n");
+            func[0] = SniffMPEG2PS;
+            func_count = 1;
+        }*/
         else
         {
         }
@@ -271,7 +277,7 @@ void DataSource::RegisterDefaultSniffers() {
     RegisterSniffer_l(SniffWAV);
     RegisterSniffer_l(SniffFLAC);
     RegisterSniffer_l(SniffAMR);
-    RegisterSniffer_l(SniffMPEG2TS);
+    //RegisterSniffer_l(SniffMPEG2TS);
     RegisterSniffer_l(SniffMP3);
     RegisterSniffer_l(SniffAAC);
     RegisterSniffer_l(SniffMPEG2PS);

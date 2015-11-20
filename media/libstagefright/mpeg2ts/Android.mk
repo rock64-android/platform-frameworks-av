@@ -10,11 +10,12 @@ LOCAL_SRC_FILES:=                 \
         MPEG2TSExtractor.cpp      \
 
 LOCAL_C_INCLUDES:= \
-	$(TOP)/frameworks/av/media/libstagefright \
-	$(TOP)/frameworks/native/include/media/openmax
+    $(JNI_H_INCLUDE) \
+    $(TOP)/frameworks/native/include/media/openmax \
+    $(TOP)/frameworks/av/media/libstagefright \
+    $(TOP)/frameworks/native/include/media/openmax \
+    $(TOP)/hardware/rockchip/librkvpu
 
-LOCAL_CFLAGS += -Werror -Wall
-LOCAL_CLANG := true
 
 LOCAL_MODULE:= libstagefright_mpeg2ts
 

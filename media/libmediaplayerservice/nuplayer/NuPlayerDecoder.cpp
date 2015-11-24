@@ -267,8 +267,15 @@ void NuPlayer::Decoder::onConfigure(const sp<AMessage> &format) {
     if (mCodec == NULL) {
         ALOGE("Failed to create %s%s decoder",
                 (secure ? "secure " : ""), mime.c_str());
-        handleError(UNKNOWN_ERROR);
-        return;
+        int32_t hasVideo = 0;
+        format->findInt32("has-video", &hasVideo);
+        if(!hasVideo) {
+            handleError(UNKNOWN_ERROR);
+            return;
+        } else {
+            ALOGD("audio format is not support,please check it");
+            return;
+        }
     }
     mIsSecure = secure;
 

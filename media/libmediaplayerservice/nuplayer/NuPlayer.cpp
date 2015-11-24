@@ -1536,6 +1536,8 @@ status_t NuPlayer::instantiateDecoder(bool audio, sp<DecoderBase> *decoder) {
             format->setInt32("has-video", hasVideo);
             *decoder = new DecoderPassThrough(notify, mSource, mRenderer);
         } else {
+            const bool hasVideo = (mSource->getFormat(false /*audio */) != NULL);
+            format->setInt32("has-video", hasVideo);
             *decoder = new Decoder(notify, mSource, mPID, mRenderer);
         }
     } else {

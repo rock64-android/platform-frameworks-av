@@ -130,7 +130,11 @@ bool DataSource::sniff(
     {
         Mutex::Autolock autoLock(gSnifferMutex);
         if (!gSniffersRegistered) {
-            return false;
+            ALOGW("not register,retry to register");
+            gSnifferMutex.unlock();
+            RegisterDefaultSniffers();
+            gSnifferMutex.lock();
+            //return false;
         }
     }
 

@@ -5,6 +5,7 @@ LOCAL_PATH:= $(call my-dir)
 #
 
 include $(CLEAR_VARS)
+BUILD_FF_PLAYER := true
 
 LOCAL_SRC_FILES:=               \
     ActivityManager.cpp         \
@@ -20,6 +21,7 @@ LOCAL_SRC_FILES:=               \
     SharedLibrary.cpp           \
     StagefrightPlayer.cpp       \
     StagefrightRecorder.cpp     \
+    FFPlayer.cpp                \
     TestPlayerStub.cpp          \
 
 LOCAL_SHARED_LIBRARIES :=       \
@@ -54,7 +56,20 @@ LOCAL_C_INCLUDES :=                                                 \
     $(TOP)/frameworks/native/include/media/openmax                  \
     $(TOP)/external/tremolo/Tremolo                                 \
 
-LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall
+LOCAL_CFLAGS += \
+    -DUSE_FFPLAYER\
+
+LOCAL_SHARED_LIBRARIES += \
+    librkffplayer\
+
+LOCAL_C_INCLUDES += \
+        $(TOP)/external/ffmpeg                                          \
+    $(TOP)/frameworks/av/media/libstagefright/libvpu/common             \
+    $(TOP)/frameworks/av/media/libstagefright/libvpu/common/include \
+    $(TOP)/hardware/rockchip/librkvpu                               \
+    $(TOP)/frameworks/av/media/rk_ffplayer
+
+#LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall -Wunused-parameter
 LOCAL_CLANG := true
 
 LOCAL_MODULE:= libmediaplayerservice

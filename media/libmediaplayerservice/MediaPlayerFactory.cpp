@@ -166,6 +166,28 @@ void MediaPlayerFactory::unregisterFactory(player_type type) {
 
 player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               const char* url) {
+    if(!strncasecmp("http://localhost:", url, 17)) {
+        return NU_PLAYER;
+    }
+    if (!strncasecmp("iptv://", url, 7)) {
+        return STAGEFRIGHT_PLAYER;
+    }
+
+    if (!strncasecmp("udpwimo", url, 7)) {
+        return STAGEFRIGHT_PLAYER;
+    }
+
+    if (!strncasecmp("DVBTV://", url, 8)) {
+        return STAGEFRIGHT_PLAYER;
+    }
+
+    if(strstr(url,".ogg")){
+        return STAGEFRIGHT_PLAYER;
+    }
+
+    if(strstr(url,".wvm")){
+       return STAGEFRIGHT_PLAYER;
+    }
     GET_PLAYER_TYPE_IMPL(client, url);
 }
 
@@ -183,6 +205,17 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
         return STAGEFRIGHT_PLAYER;
     } 
 #endif
+    if(strstr(filePath.string(),".ogg")){
+        return STAGEFRIGHT_PLAYER;
+    }
+
+    if(strstr(filePath.string(),".wvm")){
+        return STAGEFRIGHT_PLAYER;
+    }
+    
+    if(strstr(filePath.string(),".mp3")){
+        return STAGEFRIGHT_PLAYER;
+    }
     GET_PLAYER_TYPE_IMPL(client, fd, offset, length);
 }
 

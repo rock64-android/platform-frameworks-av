@@ -5,7 +5,13 @@ LOCAL_PATH:= $(call my-dir)
 #
 
 include $(CLEAR_VARS)
+ifneq ($(filter rk%, $(TARGET_BOARD_PLATFORM)), )
+LOCAL_CFLAGS := -DAVS60
 BUILD_FF_PLAYER := true
+else
+BUILD_FF_PLAYER := true
+endif
+
 
 LOCAL_SRC_FILES:=               \
     ActivityManager.cpp         \

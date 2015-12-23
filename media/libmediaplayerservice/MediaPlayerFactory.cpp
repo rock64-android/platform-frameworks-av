@@ -196,7 +196,7 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               int64_t offset,
                                               int64_t length) {
     String8 filePath;
-    getFileName(dup(fd),&filePath);
+    getFileName(fd,&filePath);
 #ifndef USE_FFPLAYER
     if(strstr(filePath.string(),".mpg") || strstr(filePath.string(),".avi")
         || strstr(filePath.string(),".ts") || strstr(filePath.string(),".flac")

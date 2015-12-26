@@ -216,6 +216,10 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
     if(strstr(filePath.string(),".mp3")){
         return STAGEFRIGHT_PLAYER;
     }
+
+    if(strstr(filePath.string(),".mid")){
+        return STAGEFRIGHT_PLAYER;
+    }
     GET_PLAYER_TYPE_IMPL(client, fd, offset, length);
 }
 

@@ -47,7 +47,7 @@
 namespace android {
 
 static const int64_t kBufferTimeOutUs = 30000ll; // 30 msec
-static const size_t kRetryCount = 20 // must be >0
+static const size_t kRetryCount = 20; // must be >0
 
 StagefrightMetadataRetriever::StagefrightMetadataRetriever()
     : mParsedMetaData(false),

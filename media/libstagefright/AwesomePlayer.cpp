@@ -3007,8 +3007,12 @@ status_t AwesomePlayer::selectAudioTrack_l(
 
     status_t err;
     if ((err = initAudioDecoder()) != OK) {
-        ALOGE("Failed to init audio decoder: 0x%x", err);
-        return err;
+        if(mVideoSource != NULL) {
+            ALOGW("audio format is not support but video is support,go on");
+        } else {
+            ALOGE("Failed to init audio decoder: 0x%x", err);
+            return err;
+        }
     }
 
     mSeekNotificationSent = true;

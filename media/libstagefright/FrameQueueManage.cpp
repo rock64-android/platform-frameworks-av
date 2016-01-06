@@ -94,7 +94,7 @@ FrameQueueManage::~FrameQueueManage()
     if (deintpollFlag)
     {
 #if USE_DEINTERLACE_DEV
-        if (deint) deint->sync();
+        if (deint) deint->sync_sf();
 #else
         int ret = -1,result = -1;
         if(poll(&fd,1,-1)>0)
@@ -299,7 +299,7 @@ void FrameQueueManage::flushframes(bool end)
         if(deintpollFlag)
         {
 #if USE_DEINTERLACE_DEV
-            if (deint) deint->sync();
+            if (deint) deint->sync_sf();
 #else
             int ret = -1,result = -1;
             if(poll(&fd,1,-1)>0)
@@ -508,7 +508,7 @@ int FrameQueueManage::DeinterlaceProc()
 #if USE_DEINTERLACE_DEV
         MediaBuffer* orig = new MediaBuffer(sizeof(VPU_FRAME));
         memcpy(orig->data(),pdeInterlaceBuffer->data(),sizeof(VPU_FRAME));
-        status_t ret = deint->perform(vpu_frame, mCurrentSubIsVobSub);
+        status_t ret = deint->perform_sf(vpu_frame, mCurrentSubIsVobSub);
         if (ret) {
             ALOGE("perform deinterlace failed");
             orig->release();
@@ -611,7 +611,7 @@ void FrameQueueManage::DeinterlacePoll()
 
     if(deintpollFlag) {
 #if USE_DEINTERLACE_DEV
-        if (deint->sync())
+        if (deint->sync_sf())
             return;
 #else
 		if(poll(&fd,1,-1)>0) {
@@ -653,7 +653,7 @@ void FrameQueueManage::DeinterlacePoll()
 #include "vpu.h"
 #include <cutils/properties.h> // for property_get
 
-deinterlace_dev::deinterlace_dev(int size)
+deinterlace_dev_sf::deinterlace_dev_sf(int size)
 	:dev_status(USING_NULL),dev_fd(-1),
 	priv_data(NULL),
 	pool(NULL)
@@ -723,7 +723,7 @@ deinterlace_dev::deinterlace_dev(int size)
    }
 }
 
-deinterlace_dev::~deinterlace_dev()
+deinterlace_dev_sf::~deinterlace_dev_sf()
 {
     switch (dev_status) {
     case USING_IEP : {
@@ -741,7 +741,7 @@ deinterlace_dev::~deinterlace_dev()
     }
 }
 
-status_t deinterlace_dev::perform(VPU_FRAME *frm, uint32_t bypass)
+status_t deinterlace_dev_sf::perform_sf(VPU_FRAME *frm, uint32_t bypass)
 {
     status_t ret = NO_INIT;
     VPUMemLinear_t deInterlaceFrame;
@@ -824,7 +824,7 @@ status_t deinterlace_dev::perform(VPU_FRAME *frm, uint32_t bypass)
     return ret;
 }
 
-status_t deinterlace_dev::sync()
+status_t deinterlace_dev_sf::sync_sf()
 {
     status_t ret = NO_INIT;
     switch (dev_status) {
@@ -857,12 +857,12 @@ status_t deinterlace_dev::sync()
     return ret;
 }
 
-status_t deinterlace_dev::status()
+status_t deinterlace_dev_sf::status()
 {
     return dev_status;
 }
 
-status_t deinterlace_dev::test()
+status_t deinterlace_dev_sf::test()
 {
     status_t ret = NO_INIT;
     switch (dev_status) {

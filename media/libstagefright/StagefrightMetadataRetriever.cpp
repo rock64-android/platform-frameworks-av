@@ -47,7 +47,7 @@
 namespace android {
 
 static const int64_t kBufferTimeOutUs = 30000ll; // 30 msec
-static const size_t kRetryCount = 2; // must be >0
+static const size_t kRetryCount = 20; // must be >0
 
 StagefrightMetadataRetriever::StagefrightMetadataRetriever()
     : mParsedMetaData(false),
@@ -153,6 +153,7 @@ static VideoFrame *extractVideoFrame(
 
     // TODO: Use Flexible color instead
     videoFormat->setInt32("color-format", OMX_COLOR_FormatYUV420Planar);
+    videoFormat->setInt32("decode-thumbnail", true);
 
     status_t err;
     sp<ALooper> looper = new ALooper;

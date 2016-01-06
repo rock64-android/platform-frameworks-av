@@ -1687,6 +1687,34 @@ status_t ACodec::configureCodec(
         }
     }
 
+    int32_t isThumbNail = 0;
+    if(!encoder && msg->findInt32("decode-thumbnail", &isThumbNail) && isThumbNail) {
+        OMX_INDEXTYPE index;
+        err = mOMX->getExtensionIndex(
+                mNode,
+                "OMX.rk.index.decoder.extension.thumbNail",
+                &index);
+
+        if (err == OK) {
+            OMX_PARAM_U32TYPE params;
+            InitOMXParams(&params);
+            params.nU32 = OMX_TRUE;
+
+            err = mOMX->setParameter(
+                    mNode, index, &params, sizeof(params));
+        }
+
+        if (err != OK) {
+            ALOGE("Decoder could not be configured to thumbNail "
+                    "(err %d)", err);
+
+            //return err;
+        }
+
+    }
+
+
+
     int32_t prependSPSPPS = 0;
     if (encoder
             && msg->findInt32("prepend-sps-pps-to-idr-frames", &prependSPSPPS)

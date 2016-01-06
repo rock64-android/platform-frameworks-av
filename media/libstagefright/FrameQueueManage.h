@@ -90,20 +90,20 @@ struct iep_ops {
     int (*poll)(void *iep_obj);
 };
 
-struct deinterlace_dev
+struct deinterlace_dev_sf
 {
     #define USING_IPP       (0)
     #define USING_PP        (1)
     #define USING_IEP       (2)
     #define USING_NULL      (-1)
-    deinterlace_dev(int size);
-    ~deinterlace_dev();
+    deinterlace_dev_sf(int size);
+    ~deinterlace_dev_sf();
 
     status_t dev_status;
     int dev_fd;
     void *priv_data;
-    status_t perform(VPU_FRAME *frm, uint32_t bypass);
-    status_t sync();
+    status_t perform_sf(VPU_FRAME *frm, uint32_t bypass);
+    status_t sync_sf();
     status_t status();
     status_t test();
     void *api;
@@ -141,7 +141,7 @@ public:
 	Mutex		mLock;
 	Mutex		mIppLock;
 #if USE_DEINTERLACE_DEV
-    deinterlace_dev *deint;
+    deinterlace_dev_sf *deint;
 #else
 	int ipp_fd;
 	struct pollfd fd;

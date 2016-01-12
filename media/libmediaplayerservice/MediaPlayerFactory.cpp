@@ -162,6 +162,30 @@ void MediaPlayerFactory::unregisterFactory(player_type type) {
     }                                                   \
                                                         \
     return ret;
+	
+#define GET_PLAYER_TYPE_IMPL_CTS(a...)                      \
+    Mutex::Autolock lock_(&sLock);                      \
+                                                        \
+		player_type ret = STAGEFRIGHT_PLAYER;           		          \
+		float bestScore = 0.0;                           		\
+                                                        \
+    for (size_t i = 0; i < sFactoryMap.size(); ++i) {   \
+                                                        \
+        IFactory* v = sFactoryMap.valueAt(i);           \
+        float thisScore;                                \
+        CHECK(v != NULL);                               \
+        thisScore = v->scoreFactory(a, bestScore);      \
+        if (thisScore > bestScore) {                    \
+            ret = sFactoryMap.keyAt(i);                 \
+            bestScore = thisScore;                      \
+        }                                               \
+    }                                                   \
+                                                        \
+    if (0.0 == bestScore) {                             \
+        ret = STAGEFRIGHT_PLAYER;                       \
+    }                                                   \
+                                                        \
+    return ret;
 #endif
 
 player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
@@ -205,6 +229,13 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
         return STAGEFRIGHT_PLAYER;
     } 
 #endif
+#ifdef USE_FFPLAYER 
+    //for cts and some apk
+    if(strstr(filePath.string(),".apk"))
+    {
+        GET_PLAYER_TYPE_IMPL_CTS(client, fd, offset, length);
+    }
+#endif 
     if(strstr(filePath.string(),".ogg")){
         return STAGEFRIGHT_PLAYER;
     }

@@ -40,6 +40,10 @@
 
 #include <ctype.h>
 
+#include <ui/DisplayInfo.h>
+#include <gui/SurfaceComposerClient.h>
+#include <gui/ISurfaceComposer.h>
+
 namespace android {
 
 // static
@@ -48,6 +52,8 @@ const int64_t WifiDisplaySource::kTeardownTriggerTimeouSecs;
 const int64_t WifiDisplaySource::kPlaybackSessionTimeoutSecs;
 const int64_t WifiDisplaySource::kPlaybackSessionTimeoutUs;
 const AString WifiDisplaySource::sUserAgent = MakeUserAgent();
+const unsigned WifiDisplaySource::mSupportMaxNativeResolution[2] = {1280, 800};
+const unsigned WifiDisplaySource::mSupportMinNativeResolution[2] = {640, 480};
 
 WifiDisplaySource::WifiDisplaySource(
         const String16 &opPackageName,
@@ -77,8 +83,10 @@ WifiDisplaySource::WifiDisplaySource(
 
     mSupportedSourceVideoFormats.disableAll();
 
-    mSupportedSourceVideoFormats.setNativeResolution(
-            VideoFormats::RESOLUTION_CEA, 5);  // 1280x720 p30
+    // enable the native resolution of pad or phone
+    if(enableNativeResolution() != OK) {
+        ALOGD("The native resolution is not supported!");
+    }
 
     // Enable all resolutions up to 1280x720p30
     mSupportedSourceVideoFormats.enableResolutionUpto(
@@ -591,10 +599,13 @@ status_t WifiDisplaySource::sendM1(int32_t sessionID) {
 
 status_t WifiDisplaySource::sendM3(int32_t sessionID) {
     AString body =
-        "wfd_content_protection\r\n"
         "wfd_video_formats\r\n"
         "wfd_audio_codecs\r\n"
         "wfd_client_rtp_ports\r\n";
+    char val[PROPERTY_VALUE_MAX];
+    if (property_get("ro.wfd.enable_hdcp_encryption", val, NULL)
+                && (!strcasecmp("true", val)))
+        body.append("wfd_content_protection\r\n");
 
     AString request = "GET_PARAMETER rtsp://localhost/wfd1.0 RTSP/1.0\r\n";
     AppendCommonResponse(&request, mNextCSeq);
@@ -1733,6 +1744,29 @@ status_t WifiDisplaySource::makeHDCP() {
     }
 
     return OK;
+}
+
+status_t WifiDisplaySource::enableNativeResolution() {
+    DisplayInfo info;
+    sp<IBinder> display(SurfaceComposerClient::getBuiltInDisplay(ISurfaceComposer::eDisplayIdMain));
+    SurfaceComposerClient::getDisplayInfo(display, &info);
+    int temp_val = 0;
+    if(info.w < info.h) {
+        temp_val = info.w;
+        info.w = info.h;
+        info.h = temp_val;
+    }
+    if((info.w <= mSupportMaxNativeResolution[0] && info.h <= mSupportMaxNativeResolution[1])
+        && (info.w >= mSupportMinNativeResolution[0] && info.h >= mSupportMinNativeResolution[1])) {
+        VideoFormats::ResolutionType nativeType;
+        size_t nativeIndex = 0;
+        if(mSupportedSourceVideoFormats.getNativeTypeAndIndex(&nativeType, &nativeIndex, info.w, info.h)) {
+            mSupportedSourceVideoFormats.setNativeResolution(nativeType, nativeIndex);
+            mSupportedSourceVideoFormats.setProfileLevel(nativeType, nativeIndex, VideoFormats::PROFILE_CHP,  VideoFormats::LEVEL_32);
+		    return OK;
+        }
+    }
+    return ERROR_UNSUPPORTED;
 }
 
 }  // namespace android

@@ -64,6 +64,7 @@ struct VideoFormats {
         kNumResolutionTypes,
     };
 
+    bool getNativeTypeAndIndex(ResolutionType *type, size_t *index, uint32_t nativeWidth, uint32_t nativeHeight);
     void setNativeResolution(ResolutionType type, size_t index);
     void getNativeResolution(ResolutionType *type, size_t *index) const;
 
@@ -115,6 +116,7 @@ private:
     uint32_t mResolutionEnabled[kNumResolutionTypes];
     static const config_t mResolutionTable[kNumResolutionTypes][32];
     config_t mConfigs[kNumResolutionTypes][32];
+    static const size_t invalidIndex;
 
     DISALLOW_EVIL_CONSTRUCTORS(VideoFormats);
 };

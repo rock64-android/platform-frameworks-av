@@ -119,6 +119,9 @@ private:
 
     String16 mOpPackageName;
 
+    static const unsigned mSupportMaxNativeResolution[2];
+    static const unsigned mSupportMinNativeResolution[2];
+
     State mState;
     VideoFormats mSupportedSourceVideoFormats;
     sp<ANetworkSession> mNetSession;
@@ -269,6 +272,8 @@ private:
     void finishStop2();
 
     void finishPlay();
+
+    status_t enableNativeResolution();
 
     DISALLOW_EVIL_CONSTRUCTORS(WifiDisplaySource);
 };

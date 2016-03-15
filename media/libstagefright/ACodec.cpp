@@ -53,7 +53,7 @@
 #include <OMX_AsString.h>
 
 #include "include/avc_utils.h"
-
+#include <cutils/properties.h>
 namespace android {
 
 // OMX errors are directly mapped into status_t range if
@@ -5534,6 +5534,12 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
     AString componentName;
     uint32_t quirks = 0;
     int32_t encoder = false;
+    char prop_value[128] = {};
+    property_get("sys.cts_gts.status",prop_value,NULL);
+    msg->findString("componentName", &componentName);
+    if(!strcmp(componentName.c_str(),"OMX.google.h264.decoder") && !strstr(prop_value,"true") ) {
+        msg->setString("componentName", "OMX.rk.video_decoder.avc");
+    }
     if (msg->findString("componentName", &componentName)) {
         ssize_t index = matchingCodecs.add();
         OMXCodec::CodecNameAndQuirks *entry = &matchingCodecs.editItemAt(index);

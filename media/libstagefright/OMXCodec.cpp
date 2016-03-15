@@ -2506,7 +2506,9 @@ void OMXCodec::onCmdComplete(OMX_COMMANDTYPE cmd, OMX_U32 data) {
 
             if (mState == RECONFIGURING) {
                 CHECK_EQ(portIndex, (OMX_U32)kPortIndexOutput);
-#if 0
+#if 1
+                if(strstr(mComponentName,"OMX.google.aac.decoder"))
+                {
                 sp<MetaData> oldOutputFormat = mOutputFormat;
                 initOutputFormat(mSource->getFormat());
 
@@ -2516,6 +2518,7 @@ void OMXCodec::onCmdComplete(OMX_COMMANDTYPE cmd, OMX_U32 data) {
                 bool formatChanged = formatHasNotablyChanged(oldOutputFormat, mOutputFormat);
                 if (!mOutputPortSettingsHaveChanged) {
                     mOutputPortSettingsHaveChanged = formatChanged;
+                    }
                 }
 #endif
 

@@ -41,14 +41,11 @@ struct ATSParser : public RefBase {
         DISCONTINUITY_ABSOLUTE_TIME     = 8,
         DISCONTINUITY_TIME_OFFSET       = 16,
 
-        DISCONTINUITY_SEEK              = DISCONTINUITY_TIME,
-
         // For legacy reasons this also implies a time discontinuity.
         DISCONTINUITY_FORMATCHANGE      =
             DISCONTINUITY_AUDIO_FORMAT
                 | DISCONTINUITY_VIDEO_FORMAT
                 | DISCONTINUITY_TIME,
-        DISCONTINUITY_PLUSTIME              = 32,
         DISCONTINUITY_FORMAT_ONLY       =
             DISCONTINUITY_AUDIO_FORMAT
                 | DISCONTINUITY_VIDEO_FORMAT,
@@ -91,9 +88,6 @@ struct ATSParser : public RefBase {
     };
 
     ATSParser(uint32_t flags = 0);
-    void set_player_type(int type);
-
-    status_t feedTSPacket(const void *data, size_t size,uint32_t seekflag, SyncEvent *event = NULL);
 
     // Feed a TS packet into the parser. uninitialized event with the start
     // offset of this TS packet goes in, and if the parser detects PES with
@@ -110,22 +104,17 @@ struct ATSParser : public RefBase {
             DiscontinuityType type, const sp<AMessage> &extra);
 
     void signalEOS(status_t finalResult);
-    void signalSeek();
-    void createLiveProgramID(unsigned AudioPID,unsigned AudioType,unsigned VideoPID,unsigned VideoType);
+
     enum SourceType {
         VIDEO = 0,
         AUDIO = 1,
         META  = 2,
         NUM_SOURCE_TYPES = 3
     };
-    sp<MediaSource> getSource(SourceType type,uint32_t& ProgramID,unsigned& elementaryPID);
     sp<MediaSource> getSource(SourceType type);
     bool hasSource(SourceType type) const;
 
-    int64_t getTimeus(uint32_t ProgramID,unsigned elementaryPID);
-    void Start(unsigned AudioPID,unsigned VideoPID);
     bool PTSTimeDeltaEstablished();
-    Vector<int32_t> mPIDbuffer;
 
     enum {
         // From ISO/IEC 13818-1: 2000 (E), Table 2-29
@@ -137,14 +126,14 @@ struct ATSParser : public RefBase {
         STREAMTYPE_MPEG2_AUDIO_ADTS     = 0x0f,
         STREAMTYPE_MPEG4_VIDEO          = 0x10,
         STREAMTYPE_METADATA             = 0x15,
-        STREAMTYPE_MPEG2_AUDIO_LATM     = 0x11,
         STREAMTYPE_H264                 = 0x1b,
+
+        // From ATSC A/53 Part 3:2009, 6.7.1
         STREAMTYPE_AC3                  = 0x81,
-        STREAMTYPE_TruHD                = 0x83,
-        STREAMTYPE_PCM_AUDIO            = 0x83,
-        STREAMTYPE_VC1                  = 0xea,
-        STREAMTYPE_HEVC                 = 0x24,
-        STREAMTYPE_PCM                  = 0x80
+
+        // Stream type 0x83 is non-standard,
+        // it could be LPCM or TrueHD AC3
+        STREAMTYPE_LPCM_AC3             = 0x83,
     };
 
 protected:
@@ -156,9 +145,6 @@ private:
     struct PSISection;
 
     uint32_t mFlags;
-#ifdef TS_DEBUG
-    FILE * fp;
-#endif
     Vector<sp<Program> > mPrograms;
 
     // Keyed by PID
@@ -178,12 +164,7 @@ private:
     // frame, set event with the time and the start offset of this PES.
     // Note that the method itself does not touch event.
     void parsePES(ABitReader *br, SyncEvent *event);
-    size_t kTSPacketSize;
-    uint32_t seekFlag;
-    unsigned mAudioPID;
-    unsigned mVideoPID;
-    bool playStart;
-    int   player_type;
+
     // Strip remaining packet headers and pass to appropriate program/stream
     // to parse the payload. If the payload turns out to be PES and contains
     // a sync frame, event shall be set with the time and start offset of the

@@ -97,7 +97,7 @@ static player_type getDefaultPlayerType() {
     }
 
 #ifndef  USE_FFPLAYER
-    return STAGEFRIGHT_PLAYER;
+    return NU_PLAYER;
 #else
     return FF_PLAYER;
 #endif
@@ -228,6 +228,17 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
     {
         return STAGEFRIGHT_PLAYER;
     } 
+    char buf[20];
+    lseek(fd, offset, SEEK_SET);
+    read(fd, buf, sizeof(buf));
+    lseek(fd, offset, SEEK_SET);
+
+    uint32_t ident = *((uint32_t*)buf);
+
+    char value[PROPERTY_VALUE_MAX];
+    //for cts and some apk
+    if(((property_get("sys.cts_gts.status", value, NULL))&&(strstr(value, "true")))&&ident == 402653184 && !strstr(filePath.string(),"/data/app/com.android.cts.security-1/base.apk"))
+        return STAGEFRIGHT_PLAYER;
 #endif
 #ifdef USE_FFPLAYER 
     //for cts and some apk

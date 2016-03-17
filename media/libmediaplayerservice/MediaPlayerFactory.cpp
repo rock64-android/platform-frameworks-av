@@ -190,6 +190,7 @@ void MediaPlayerFactory::unregisterFactory(player_type type) {
 
 player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               const char* url) {
+#ifdef USE_FFPLAYER
     if(!strncasecmp("http://localhost:", url, 17)) {
         return NU_PLAYER;
     }
@@ -212,6 +213,7 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
     if(strstr(url,".wvm")){
        return STAGEFRIGHT_PLAYER;
     }
+#endif
     GET_PLAYER_TYPE_IMPL(client, url);
 }
 
@@ -219,9 +221,9 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               int fd,
                                               int64_t offset,
                                               int64_t length) {
+#ifndef USE_FFPLAYER
     String8 filePath;
     getFileName(fd,&filePath);
-#ifndef USE_FFPLAYER
     if(strstr(filePath.string(),".mpg") || strstr(filePath.string(),".avi")
         || strstr(filePath.string(),".ts") || strstr(filePath.string(),".flac")
         || strstr(filePath.string(),".wav"))
@@ -236,17 +238,17 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
     uint32_t ident = *((uint32_t*)buf);
 
     char value[PROPERTY_VALUE_MAX];
-    //for cts and some apk
     if(((property_get("sys.cts_gts.status", value, NULL))&&(strstr(value, "true")))&&ident == 402653184 && !strstr(filePath.string(),"/data/app/com.android.cts.security-1/base.apk"))
         return STAGEFRIGHT_PLAYER;
 #endif
 #ifdef USE_FFPLAYER 
+    String8 filePath;
+    getFileName(fd,&filePath);
     //for cts and some apk
     if(strstr(filePath.string(),".apk"))
     {
         GET_PLAYER_TYPE_IMPL_CTS(client, fd, offset, length);
     }
-#endif 
     if(strstr(filePath.string(),".ogg")){
         return STAGEFRIGHT_PLAYER;
     }
@@ -262,6 +264,7 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
     if(strstr(filePath.string(),".mid")){
         return STAGEFRIGHT_PLAYER;
     }
+#endif
     GET_PLAYER_TYPE_IMPL(client, fd, offset, length);
 }
 

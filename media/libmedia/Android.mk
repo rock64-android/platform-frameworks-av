@@ -79,6 +79,9 @@ LOCAL_WHOLE_STATIC_LIBRARIES := libmedia_helper
 LOCAL_MODULE:= libmedia
 
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+ifeq ($(strip $(TARGET_BOARD_PLATFORM_PRODUCT)),box)
+	LOCAL_CFLAGS += -DBOX
+endif
 
 LOCAL_C_INCLUDES := \
     $(TOP)/frameworks/native/include/media/openmax \

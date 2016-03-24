@@ -99,6 +99,7 @@ private:
 
     bool mSeeking;
     bool mReachedEOS;
+    bool mAudioTearDown;
     status_t mFinalStatus;
     int64_t mSeekTimeUs;
 

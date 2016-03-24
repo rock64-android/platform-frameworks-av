@@ -51,6 +51,7 @@ AudioPlayer::AudioPlayer(
       mPositionTimeRealUs(-1),
       mSeeking(false),
       mReachedEOS(false),
+      mAudioTearDown(false),
       mFinalStatus(OK),
       mSeekTimeUs(0),
       mStarted(false),
@@ -375,6 +376,7 @@ void AudioPlayer::reset() {
     mSeeking = false;
     mSeekTimeUs = 0;
     mReachedEOS = false;
+    mAudioTearDown = false;
     mFinalStatus = OK;
     mStarted = false;
     mPlaying = false;
@@ -448,6 +450,7 @@ size_t AudioPlayer::AudioSinkCallback(
 
     case MediaPlayerBase::AudioSink::CB_EVENT_TEAR_DOWN:
         ALOGV("AudioSinkCallback: Tear down event");
+        me->mAudioTearDown = true;
         me->mObserver->postAudioTearDown();
         break;
     }
@@ -497,7 +500,7 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
         ALOGV("AudioCallback");
     }
 
-    if (mReachedEOS) {
+    if (mReachedEOS || mAudioTearDown) {
         return 0;
     }
 

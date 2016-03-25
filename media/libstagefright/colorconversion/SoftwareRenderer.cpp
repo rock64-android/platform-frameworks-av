@@ -67,9 +67,14 @@ void SoftwareRenderer::resetFormatIfChanged(const sp<AMessage> &format) {
     CHECK(format->findInt32("color-format", &colorFormatNew));
 
     int32_t widthNew, heightNew;
-    CHECK(format->findInt32("stride", &widthNew));
-    CHECK(format->findInt32("slice-height", &heightNew));
+    // CHECK(format->findInt32("stride", &widthNew));
+    // CHECK(format->findInt32("slice-height", &heightNew));
 
+    if(!format->findInt32("stride", &widthNew)  ||
+            !format->findInt32("slice-height", &heightNew)) {
+        CHECK(format->findInt32("width", &widthNew));
+        CHECK(format->findInt32("height", &heightNew));
+    }
     int32_t cropLeftNew, cropTopNew, cropRightNew, cropBottomNew;
     if (!format->findRect(
             "crop", &cropLeftNew, &cropTopNew, &cropRightNew, &cropBottomNew)) {

@@ -17,7 +17,9 @@
 //#define LOG_NDEBUG 0
 #define LOG_TAG "MediaCodec"
 #include <inttypes.h>
-
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "include/avc_utils.h"
 #include "include/SoftwareRenderer.h"
 
@@ -51,7 +53,7 @@
 #include <private/android_filesystem_config.h>
 #include <utils/Log.h>
 #include <utils/Singleton.h>
-
+#include <cutils/properties.h>
 namespace android {
 
 static int64_t getId(sp<IResourceManagerClient> client) {
@@ -198,7 +200,6 @@ sp<PersistentSurface> MediaCodec::CreatePersistentInputSurface() {
     OMXClient client;
     CHECK_EQ(client.connect(), (status_t)OK);
     sp<IOMX> omx = client.interface();
-
     const sp<IMediaCodecList> mediaCodecList = MediaCodecList::getInstance();
     if (mediaCodecList == NULL) {
         ALOGE("Failed to obtain MediaCodecList!");
@@ -239,6 +240,12 @@ sp<PersistentSurface> MediaCodec::CreatePersistentInputSurface() {
         return NULL;
     }
 
+    int fd ;
+    fd = open("/sdcard/CreatePersistentInputSurface", O_RDWR | O_CREAT,S_IXOTH);
+    if(!access("/sdcard/CreatePersistentInputSurface",0)) {
+        ALOGD("/sdcard/CreatePersistentInputSurface is exist"); 
+    }
+    close(fd);
     return new PersistentSurface(bufferProducer, bufferConsumer);
 }
 

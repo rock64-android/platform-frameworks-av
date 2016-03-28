@@ -33,7 +33,7 @@
 #include "TestPlayerStub.h"
 #include "StagefrightPlayer.h"
 #include "nuplayer/NuPlayerDriver.h"
-#define USE_FFPLAYER
+//#define USE_FFPLAYER
 
 #ifdef USE_FFPLAYER
 #include "FFPlayer.h"

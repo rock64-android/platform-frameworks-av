@@ -27,7 +27,6 @@ LOCAL_SRC_FILES:=               \
     SharedLibrary.cpp           \
     StagefrightPlayer.cpp       \
     StagefrightRecorder.cpp     \
-    FFPlayer.cpp                \
     TestPlayerStub.cpp          \
 
 LOCAL_SHARED_LIBRARIES :=       \
@@ -60,7 +59,11 @@ LOCAL_C_INCLUDES :=                                                 \
     $(TOP)/frameworks/av/media/libstagefright/wifi-display          \
     $(TOP)/frameworks/av/media/libstagefright/webm                  \
     $(TOP)/frameworks/native/include/media/openmax                  \
-    $(TOP)/external/tremolo/Tremolo                                 \
+    $(TOP)/external/tremolo/Tremolo
+
+ifeq ($(strip $(BUILD_FF_PLAYER)),true)
+LOCAL_SRC_FILES += \
+    FFPlayer.cpp\
 
 LOCAL_CFLAGS += \
     -DUSE_FFPLAYER\
@@ -74,7 +77,7 @@ LOCAL_C_INCLUDES += \
     $(TOP)/frameworks/av/media/libstagefright/libvpu/common/include \
     $(TOP)/hardware/rockchip/librkvpu                               \
     $(TOP)/frameworks/av/media/rk_ffplayer
-
+endif
 #LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall -Wunused-parameter
 LOCAL_CLANG := true
 

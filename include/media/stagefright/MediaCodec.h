@@ -336,6 +336,7 @@ private:
 
     bool mHaveInputSurface;
     bool mHavePendingInputBuffers;
+    int power_fd;
 
     MediaCodec(const sp<ALooper> &looper, pid_t pid);
 
@@ -388,6 +389,8 @@ private:
     bool hasPendingBuffer(int portIndex);
     bool hasPendingBuffer();
 
+    void closeVideoPowerControl(int,int,bool);
+    void openVideoPowerControl(int,int,bool);
     /* called to get the last codec error when the sticky flag is set.
      * if no such codec error is found, returns UNKNOWN_ERROR.
      */

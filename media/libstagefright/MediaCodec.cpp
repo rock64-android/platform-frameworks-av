@@ -270,7 +270,8 @@ MediaCodec::MediaCodec(const sp<ALooper> &looper, pid_t pid)
       mDequeueOutputTimeoutGeneration(0),
       mDequeueOutputReplyID(0),
       mHaveInputSurface(false),
-      mHavePendingInputBuffers(false) {
+      mHavePendingInputBuffers(false),
+      power_fd(-1) {
 }
 
 MediaCodec::~MediaCodec() {
@@ -2579,8 +2580,39 @@ ssize_t MediaCodec::dequeuePortBuffer(int32_t portIndex) {
 
     return index;
 }
+void MediaCodec::openVideoPowerControl(int width,int height,bool ishevc){
+    char prop_value[PROPERTY_VALUE_MAX];
+    if(property_get("sf.power.control", prop_value, NULL)&& atoi(prop_value) > 0){
+        power_fd = open("/dev/video_state", O_WRONLY);
+        if(power_fd == -1){
+            ALOGE("power control open fd fail");
+            return;
+        }
+        ALOGV("power control open fd suceess and write to 1");
+        char para[200]={0};
+        int paraLen = 0;
+        paraLen = sprintf(para, "1,width=%d,height=%d,ishevc=%d,videoFramerate=%d,streamBitrate=%d",width,height,ishevc,0,0);
+        write(power_fd, para, paraLen);
+    }
+}
 
+void MediaCodec::closeVideoPowerControl(int width,int height,bool ishevc){
+    char prop_value[PROPERTY_VALUE_MAX];
+    if(property_get("sf.power.control", prop_value, NULL) && atoi(prop_value) > 0){
+        char para[200]={0};
+        int paraLen = 0;
+        paraLen = sprintf(para, "0,width=%d,height=%d,ishevc=%d,videoFramerate=%d,streamBitrate=%d",width,height,ishevc,0,0);
+        if(power_fd > 0){
+            ALOGV("power control close fd and write to 0");
+            write(power_fd, para, paraLen);
+            close(power_fd);
+            power_fd = -1;
+        }
+    }
+}
 status_t MediaCodec::connectToSurface(const sp<Surface> &surface) {
+    bool ishevc = strstr(mComponentName.c_str(),"OMX.rk.video_decoder.hevc"); 
+    openVideoPowerControl(mVideoWidth,mVideoHeight,ishevc);
     status_t err = OK;
     if (surface != NULL) {
         err = native_window_api_connect(surface.get(), NATIVE_WINDOW_API_MEDIA);
@@ -2614,6 +2646,8 @@ status_t MediaCodec::connectToSurface(const sp<Surface> &surface) {
 
 status_t MediaCodec::disconnectFromSurface() {
     status_t err = OK;
+    bool ishevc = strstr(mComponentName.c_str(),"OMX.rk.video_decoder.hevc"); 
+    closeVideoPowerControl(mVideoWidth,mVideoHeight,ishevc);
     if (mSurface != NULL) {
         // Resetting generation is not technically needed, but there is no need to keep it either
         mSurface->setGenerationNumber(0);

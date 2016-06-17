@@ -64,6 +64,9 @@ LOCAL_SHARED_LIBRARIES := \
     liblog \
     libsoundtrigger
 
+ifeq ($(strip $(TARGET_BOARD_PLATFORM_PRODUCT)), box)
+LOCAL_CFLAGS += -DBOX_STRATEGY
+endif
 ifeq ($(USE_CONFIGURABLE_AUDIO_POLICY), 1)
 
 LOCAL_REQUIRED_MODULES := \

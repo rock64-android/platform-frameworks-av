@@ -21,6 +21,7 @@ LOCAL_C_INCLUDES:= \
         $(TOP)/frameworks/native/include \
         $(TOP)/hardware/rockchip/librkvpu \
         $(TOP)/hardware/rockchip/libgralloc \
+	$(TOP)/hardware/include
 
 LOCAL_SHARED_LIBRARIES:= \
         libbinder                       \
@@ -33,6 +34,10 @@ LOCAL_SHARED_LIBRARIES:= \
         libui                           \
         libutils                        \
         libvpu                          \
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM_GPU)),G6110)
+        LOCAL_CFLAGS += -DPOWERVR_GPU_G6110
+endif
 
 #LOCAL_CFLAGS += -Wno-multichar -Werror -Wall
 LOCAL_CLANG := true

@@ -14,7 +14,12 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include "rga.h"
+#ifdef POWERVR_GPU_G6110
+#include  <hardware/img_gralloc_public.h>
+#define private_handle_t IMG_native_handle_t
+#else
 #include "gralloc_priv.h"
+#endif
 
 namespace android {
 

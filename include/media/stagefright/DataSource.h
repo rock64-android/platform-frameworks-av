@@ -106,20 +106,6 @@ public:
     bool getVector(off64_t offset, Vector<T>* x, size_t count,
                    size_t chunkSize = (4095 / sizeof(T)) + 1);
 
-    // Reads in "count" entries of type T into vector *x.
-    // Returns true if "count" entries can be read.
-    // If fewer than "count" entries can be read, return false. In this case,
-    // the output vector *x will still have those entries that were read. Call
-    // x->size() to obtain the number of entries read.
-    // The optional parameter chunkSize specifies how many entries should be
-    // read from the data source at one time into a temporary buffer. Increasing
-    // chunkSize can improve the performance at the cost of extra memory usage.
-    // The default value for chunkSize is set to read at least 4k bytes at a
-    // time, depending on sizeof(T).
-    template <typename T>
-    bool getVector(off64_t offset, Vector<T>* x, size_t count,
-                   size_t chunkSize = (4095 / sizeof(T)) + 1);
-
     // May return ERROR_UNSUPPORTED.
     virtual status_t getSize(off64_t *size);
 

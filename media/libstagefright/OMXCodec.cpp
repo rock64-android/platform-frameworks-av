@@ -413,7 +413,6 @@ sp<MediaSource> OMXCodec::Create(
                 return softwareCodec;
             }
 
-
         ALOGV("Attempting to allocate OMX node '%s'", componentName);
 
         status_t err = omx->allocateNode(componentName, observer, &node);

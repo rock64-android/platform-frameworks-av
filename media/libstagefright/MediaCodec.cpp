@@ -2611,8 +2611,10 @@ void MediaCodec::closeVideoPowerControl(int width,int height,bool ishevc){
     }
 }
 status_t MediaCodec::connectToSurface(const sp<Surface> &surface) {
+#ifndef USE_SOFT_HEVC
     bool ishevc = strstr(mComponentName.c_str(),"OMX.rk.video_decoder.hevc"); 
     openVideoPowerControl(mVideoWidth,mVideoHeight,ishevc);
+#endif
     status_t err = OK;
     if (surface != NULL) {
         err = native_window_api_connect(surface.get(), NATIVE_WINDOW_API_MEDIA);
@@ -2646,8 +2648,10 @@ status_t MediaCodec::connectToSurface(const sp<Surface> &surface) {
 
 status_t MediaCodec::disconnectFromSurface() {
     status_t err = OK;
+#ifndef USE_SOFT_HEVC
     bool ishevc = strstr(mComponentName.c_str(),"OMX.rk.video_decoder.hevc"); 
     closeVideoPowerControl(mVideoWidth,mVideoHeight,ishevc);
+#endif
     if (mSurface != NULL) {
         // Resetting generation is not technically needed, but there is no need to keep it either
         mSurface->setGenerationNumber(0);

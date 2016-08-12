@@ -136,10 +136,10 @@ int main(int argc __unused, char** argv)
         sp<IServiceManager> sm = defaultServiceManager();
         ALOGI("ServiceManager: %p", sm.get());
         AudioFlinger::instantiate();
+        AudioPolicyService::instantiate();
         MediaPlayerService::instantiate();
         ResourceManagerService::instantiate();
         CameraService::instantiate();
-        AudioPolicyService::instantiate();
         SoundTriggerHwService::instantiate();
         RadioService::instantiate();
         registerExtensions();

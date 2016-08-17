@@ -53,6 +53,7 @@ public:
     const char* getModuleAuthor();
     // Only used by CameraModuleFixture native test. Do NOT use elsewhere.
     void *getDso();
+    int getNumOfCams(void);//avoid repeated parsing cam_board.xml.
 
 private:
     // Derive camera characteristics keys defined after HAL device version
@@ -60,6 +61,7 @@ private:
     status_t filterOpenErrorCode(status_t err);
 
     camera_module_t *mModule;
+    int mNumberOfCameras;
     KeyedVector<int, camera_info> mCameraInfoMap;
     Mutex mCameraInfoLock;
 };

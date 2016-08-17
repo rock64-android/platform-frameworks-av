@@ -178,7 +178,8 @@ int CameraModule::init() {
         res = mModule->init();
         ATRACE_END();
     }
-    mCameraInfoMap.setCapacity(getNumberOfCameras());
+    mNumberOfCameras = getNumberOfCameras();
+    mCameraInfoMap.setCapacity(mNumberOfCameras);
     return res;
 }
 
@@ -253,6 +254,14 @@ int CameraModule::getNumberOfCameras() {
     numCameras = mModule->get_number_of_cameras();
     ATRACE_END();
     return numCameras;
+}
+
+int CameraModule::getNumOfCams() {
+    int mNumCams;
+    ATRACE_BEGIN("camera_module->getNumOfCams");
+    mNumCams = mNumberOfCameras;
+    ATRACE_END();
+    return mNumCams;
 }
 
 int CameraModule::setCallbacks(const camera_module_callbacks_t *callbacks) {

@@ -157,7 +157,7 @@ status_t CameraFlashlight::setTorchMode(const String8& cameraId, bool enabled) {
 status_t CameraFlashlight::findFlashUnits() {
     Mutex::Autolock l(mLock);
     status_t res;
-    int32_t numCameras = mCameraModule->getNumberOfCameras();
+    int32_t numCameras = mCameraModule->getNumOfCams();
 
     mHasFlashlightMap.clear();
     mFlashlightMapInitialized = false;
@@ -233,7 +233,7 @@ status_t CameraFlashlight::prepareDeviceOpen(const String8& cameraId) {
 
         if (mOpenedCameraIds.size() == 0) {
             // notify torch unavailable for all cameras with a flash
-            int numCameras = mCameraModule->getNumberOfCameras();
+            int numCameras = mCameraModule->getNumOfCams();
             for (int i = 0; i < numCameras; i++) {
                 if (hasFlashUnitLocked(String8::format("%d", i))) {
                     mCallbacks->torch_mode_status_change(mCallbacks,
@@ -278,7 +278,7 @@ status_t CameraFlashlight::deviceClosed(const String8& cameraId) {
 
     if (mCameraModule->getModuleApiVersion() < CAMERA_MODULE_API_VERSION_2_4) {
         // notify torch available for all cameras with a flash
-        int numCameras = mCameraModule->getNumberOfCameras();
+        int numCameras = mCameraModule->getNumOfCams();
         for (int i = 0; i < numCameras; i++) {
             if (hasFlashUnitLocked(String8::format("%d", i))) {
                 mCallbacks->torch_mode_status_change(mCallbacks,

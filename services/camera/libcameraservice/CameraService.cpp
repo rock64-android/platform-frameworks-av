@@ -170,7 +170,7 @@ void CameraService::onFirstRef()
     }
     ALOGI("Loaded \"%s\" camera module", mModule->getModuleName());
 
-    mNumberOfCameras = mModule->getNumberOfCameras();
+    mNumberOfCameras = mModule->getNumOfCams();
     mNumberOfNormalCameras = mNumberOfCameras;
 
     // Setup vendor tags before we call get_camera_info the first time
@@ -247,6 +247,7 @@ void CameraService::onFirstRef()
     }
 
     CameraDeviceFactory::registerService(this);
+    return; //xcq add, in order to shorten the boot time,should be ok for now.
 
     CameraService::pingCameraServiceProxy();
 }

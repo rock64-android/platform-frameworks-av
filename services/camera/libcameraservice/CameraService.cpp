@@ -416,6 +416,10 @@ int32_t CameraService::getNumberOfCameras(int type) {
     ATRACE_CALL();
     switch (type) {
         case CAMERA_TYPE_BACKWARD_COMPATIBLE:
+            if(mNumberOfNormalCameras == 0) {
+                ALOGE("no camera be found ! check again...");
+                onFirstRef();
+            }
             return mNumberOfNormalCameras;
         case CAMERA_TYPE_ALL:
             return mNumberOfCameras;

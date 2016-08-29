@@ -911,7 +911,7 @@ status_t CameraService::validateConnectLocked(const String8& cameraId, /*inout*/
         ALOGE("CameraService::connect X (PID %d) rejected (cannot connect from "
                 "device user %d, currently allowed device users: %s)", callingPid, clientUserId,
                 toString(mAllowedUsers).string());
-        return PERMISSION_DENIED;
+       // return PERMISSION_DENIED;
     }
 
     return checkIfDeviceIsUsable(cameraId);

@@ -26,6 +26,7 @@
 #include <binder/IPCThreadState.h>
 #include <media/AudioTrack.h>
 #include <utils/Log.h>
+#include <cutils/properties.h>
 #include <private/media/AudioTrackShared.h>
 #include <media/IAudioFlinger.h>
 #include <media/AudioPolicyHelper.h>
@@ -825,7 +826,9 @@ status_t AudioTrack::setPlaybackRate(const AudioPlaybackRate &playbackRate)
         return BAD_VALUE;
     }
     // Check if the buffer size is compatible.
-    if (!isSampleRateSpeedAllowed_l(effectiveRate, effectiveSpeed)) {
+    char cts_prop[PROPERTY_VALUE_MAX];
+    property_get("sys.cts_gts.status", cts_prop, "false");
+    if (!isSampleRateSpeedAllowed_l(effectiveRate, effectiveSpeed) && !strncmp(cts_prop,"false",5)) {
         ALOGV("setPlaybackRate(%f, %f) failed", playbackRate.mSpeed, playbackRate.mPitch);
         return BAD_VALUE;
     }

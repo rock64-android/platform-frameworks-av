@@ -1937,7 +1937,8 @@ status_t MediaPlayerService::AudioOutput::getPlaybackRate(AudioPlaybackRate *rat
     ALOGV("setPlaybackRate");
     Mutex::Autolock lock(mLock);
     if (mTrack == 0) {
-        return NO_INIT;
+        *rate = mPlaybackRate;
+        return NO_ERROR;
     }
     *rate = mTrack->getPlaybackRate();
     return NO_ERROR;

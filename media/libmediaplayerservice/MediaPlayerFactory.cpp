@@ -247,7 +247,18 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
     //for cts and some apk
     if(strstr(filePath.string(),".apk"))
     {
-        GET_PLAYER_TYPE_IMPL_CTS(client, fd, offset, length);
+        char buf[20];
+        lseek(fd, offset, SEEK_SET);
+        read(fd, buf, sizeof(buf));
+        lseek(fd, offset, SEEK_SET);
+        uint32_t ident = *((uint32_t*)buf);
+        char value[PROPERTY_VALUE_MAX];
+        property_get("sys.cts_gts.status", value, "false");
+        if(!strcmp(value,"true") && ident==1684558925 && !strcmp(filePath.string(),"/data/app/com.android.cts.security-1/base.apk")){
+            return NU_PLAYER;
+        } else {
+            GET_PLAYER_TYPE_IMPL_CTS(client, fd, offset, length);
+        }
     }
     if(strstr(filePath.string(),".ogg")){
         return STAGEFRIGHT_PLAYER;

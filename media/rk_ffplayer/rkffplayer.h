@@ -4,32 +4,21 @@
 #include <media/MediaPlayerInterface.h>
 #include <utils/Vector.h>
 
-namespace android
-{
+namespace android {
 
 class FFPlayerDelegate;
 
-class FF_MediaPlayer
-{
+class FF_MediaPlayer {
 public:
     FF_MediaPlayer();
     virtual             ~FF_MediaPlayer();
     void                setListener(const wp<MediaPlayerBase> &listener);
     status_t            setDataSource(int fd, int64_t offset, int64_t length);
-#if defined (AVS50) || defined (AVS60)
     status_t             setDataSource(const sp<IMediaHTTPService> &httpService,
                                        const char *url, const KeyedVector<String8, String8> *headers);
-#else
-    status_t            setDataSource(const char *uri, const KeyedVector<String8, String8> *headers);
-#endif
 
-#if defined(AVS44) || defined (AVS50) || defined (AVS60)
     status_t            setSurfaceTexture(const sp<IGraphicBufferProducer> &bufferProducer);
-#else
-    status_t            setSurfaceTexture(const sp<ISurfaceTexture> &surfaceTexture);
-#endif
     void                setAudioSink(const sp<MediaPlayerBase::AudioSink> &audioSink);
-    status_t            dump(int fd, const Vector<String16> &args);
     status_t	        prepare();
     status_t           prepareAsync();
     status_t           start();

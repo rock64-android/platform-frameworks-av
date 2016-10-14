@@ -217,7 +217,8 @@ status_t FFPlayer::getMetadata(
 }
 
 status_t FFPlayer::dump(int fd, const Vector<String16> &args) const {
-	return mPlayer->dump(fd, args);
+    return INVALID_OPERATION;
+   // return mPlayer->dump(fd, args);
 }
 
 }  // namespace android

@@ -651,7 +651,12 @@ sp<IOProfile> AudioPolicyManager::getProfileForDirectOutput(
         (audio_output_flags_t)((flags & kRelevantFlags) | AUDIO_OUTPUT_FLAG_DIRECT);
 
     sp<IOProfile> profile;
-
+#ifdef BOX_STRATEGY
+    if(flags != AUDIO_OUTPUT_FLAG_DIRECT)
+        return 0;
+    if ((flags == AUDIO_OUTPUT_FLAG_DIRECT) && (device & AUDIO_DEVICE_OUT_SPDIF))
+        device = AUDIO_DEVICE_OUT_SPDIF;
+#endif
     for (size_t i = 0; i < mHwModules.size(); i++) {
         if (mHwModules[i]->mHandle == 0) {
             continue;
@@ -996,7 +1001,6 @@ non_direct_output:
         // get which output is suitable for the specified stream. The actual
         // routing change will happen when startOutput() will be called
         SortedVector<audio_io_handle_t> outputs = getOutputsForDevice(device, mOutputs);
-
         // at this stage we should ignore the DIRECT flag as no direct output could be found earlier
         flags = (audio_output_flags_t)(flags & ~AUDIO_OUTPUT_FLAG_DIRECT);
         output = selectOutput(outputs, flags, format);
@@ -3152,7 +3156,28 @@ sp<AudioSourceDescriptor> AudioPolicyManager::getSourceForStrategyOnOutput(
     }
     return source;
 }
+#ifdef BOX_STRATEGY
+#define PROCCARDS                               "/proc/asound/cards"
+#define VALUESIZE  80
 
+static inline bool hasSpdif(){
+    char line[VALUESIZE];
+    bool ret = false;
+    FILE *fd = fopen(PROCCARDS, "r");
+    if(NULL != fd){
+        memset(line, 0, VALUESIZE);
+        while ((fgets(line, VALUESIZE, fd)) != NULL) {
+            line[VALUESIZE-1]='\0';
+            if(strstr(line, "SPDIF") || (strstr(line, "spdif"))){
+                ret = true;
+                break;
+            }
+        }
+        fclose(fd);
+    }
+    return ret;
+}
+#endif
 // ----------------------------------------------------------------------------
 // AudioPolicyManager
 // ----------------------------------------------------------------------------
@@ -3209,6 +3234,76 @@ AudioPolicyManager::AudioPolicyManager(AudioPolicyClientInterface *clientInterfa
         ALOGE("%s:  Could not get an instance of policy engine", __FUNCTION__);
         return;
     }
+#ifdef BOX_STRATEGY
+    mHDMIOutputDevice = new DeviceDescriptor(AUDIO_DEVICE_OUT_AUX_DIGITAL);
+    mSPDIFOutputDevice = new DeviceDescriptor(AUDIO_DEVICE_OUT_SPDIF);
+
+    mHDMIOutputDevice->mAddress = "";
+    mSPDIFOutputDevice->mAddress = "";
+	#define CARDSDEFAULT		0
+	#define CARDSTRATEGYSPDIF	1
+	#define CARDSTRATEGYBOTH	9
+	#define CARDSTRATEGYSPDIFPR	8
+	#define CARDSTRATEGYHDMIMUL	7
+	#define CARDSTRATEGYHDMIBS	6
+	#define CARDSTRATEGYBOTHSTR	"9"
+	#define MEDIA_CFG_AUDIO_BYPASS	"media.cfg.audio.bypass"
+	#define MEDIA_CFG_AUDIO_MUL 	"media.cfg.audio.mul"
+	#define MEDIA_AUDIO_CURRENTPB	"persist.audio.currentplayback"
+	#define MEDIA_AUDIO_LASTPB	"persist.audio.lastsocplayback"
+
+	char value[PROPERTY_VALUE_MAX] = "";
+	int cardStrategy= 0;
+
+	property_get(MEDIA_AUDIO_CURRENTPB, value, "-1");
+	cardStrategy = atoi(value);
+	property_set(MEDIA_CFG_AUDIO_BYPASS, "false");
+	property_set(MEDIA_CFG_AUDIO_MUL, "false");
+
+	ALOGD("cardStrategy = %d , hasSpdif() = %d", cardStrategy,hasSpdif());
+	if(hasSpdif())
+            mAvailableOutputDevices.add(mSPDIFOutputDevice);
+        mAvailableOutputDevices.add(mHDMIOutputDevice);
+	switch (cardStrategy) {
+	case CARDSDEFAULT:
+		if(hasSpdif())
+			mAvailableOutputDevices.add(mSPDIFOutputDevice);
+		mAvailableOutputDevices.add(mHDMIOutputDevice);
+		property_set(MEDIA_CFG_AUDIO_BYPASS, "false");
+		property_set(MEDIA_CFG_AUDIO_MUL, "false");
+		break;
+	case CARDSTRATEGYHDMIMUL:
+		mAvailableOutputDevices.add(mHDMIOutputDevice);
+		mAvailableOutputDevices.remove(mSPDIFOutputDevice);
+		property_set(MEDIA_CFG_AUDIO_MUL, "true");
+		break;
+	case CARDSTRATEGYSPDIF:
+	case CARDSTRATEGYSPDIFPR:
+		if(hasSpdif())
+			mAvailableOutputDevices.add(mSPDIFOutputDevice);
+		mAvailableOutputDevices.remove(mHDMIOutputDevice);
+		if(cardStrategy==CARDSTRATEGYSPDIFPR)
+			property_set(MEDIA_CFG_AUDIO_BYPASS, "true");
+		else
+			property_set(MEDIA_CFG_AUDIO_BYPASS, "false");
+		break;
+	case CARDSTRATEGYHDMIBS:
+		if(hasSpdif())
+			mAvailableOutputDevices.remove(mSPDIFOutputDevice);
+		mAvailableOutputDevices.add(mHDMIOutputDevice);
+		property_set(MEDIA_CFG_AUDIO_BYPASS, "true");
+		property_set(MEDIA_CFG_AUDIO_MUL, "false");
+		break;
+	default:
+		if(hasSpdif())
+			mAvailableOutputDevices.add(mSPDIFOutputDevice);
+		mAvailableOutputDevices.add(mHDMIOutputDevice);
+		property_set(MEDIA_AUDIO_CURRENTPB, "0");
+		property_set(MEDIA_AUDIO_LASTPB, "0");
+		break;
+	}
+	system("sync");
+#endif
     // Retrieve the Policy Manager Interface
     mEngine = engineInstance->queryInterface<AudioPolicyManagerInterface>();
     if (mEngine == NULL) {

@@ -512,7 +512,11 @@ audio_devices_t Engine::getDeviceForStrategyInt(routing_strategy strategy,
         int device3 = AUDIO_DEVICE_NONE;
         if (strategy == STRATEGY_MEDIA) {
             // ARC, SPDIF and AUX_LINE can co-exist with others.
+#ifdef BOX_STRATEGY
+            device3 = availableOutputDevicesType & AUDIO_DEVICE_OUT_HDMI;
+#else
             device3 = availableOutputDevicesType & AUDIO_DEVICE_OUT_HDMI_ARC;
+#endif
             device3 |= (availableOutputDevicesType & AUDIO_DEVICE_OUT_SPDIF);
             device3 |= (availableOutputDevicesType & AUDIO_DEVICE_OUT_AUX_LINE);
         }

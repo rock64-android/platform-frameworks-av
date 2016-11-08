@@ -18,6 +18,9 @@ LOCAL_CFLAGS += \
     -Werror \
     -Wextra \
 
+ifeq ($(strip $(TARGET_BOARD_PLATFORM_PRODUCT)), box)
+LOCAL_CFLAGS += -DBOX_STRATEGY
+endif
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
     $(audio_policy_engine_includes_common)
 

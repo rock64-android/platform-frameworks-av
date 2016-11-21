@@ -41,6 +41,10 @@
 #include "StagefrightMetadataRetriever.h"
 #include "MediaPlayerFactory.h"
 
+#ifdef USE_FFPLAYER
+#include "RkMetadataRetriever.h"
+#endif
+
 namespace android {
 
 MetadataRetrieverClient::MetadataRetrieverClient(pid_t pid)
@@ -86,15 +90,28 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
     sp<MediaMetadataRetrieverBase> p;
     switch (playerType) {
         case STAGEFRIGHT_PLAYER:
+        case FF_PLAYER:
         case NU_PLAYER:
         {
-            p = new StagefrightMetadataRetriever;
+            #ifdef USE_FFPLAYER
+                ALOGD("Create Instance of RockMetaDataRetriever");
+                //p =  new RK_MetadataRetriever;
+            #else
+                ALOGD("Create Instance of StagefrightMetaDataRetriever");
+                p = new StagefrightMetadataRetriever;
+            #endif
             break;
         }
         default:
             // TODO:
             // support for TEST_PLAYER
-            ALOGE("player type %d is not supported",  playerType);
+            #ifdef USE_FFPLAYER
+                ALOGD("Create Instance of RockMetaDataRetriever, unknowType =%d; FF_PLAYER=%d; NU_PLAYER=%d", 
+                                                                 playerType, FF_PLAYER, NU_PLAYER);
+                //p =  new RK_MetadataRetriever;
+            #else
+                ALOGE("player type %d is not supported",  playerType);
+            #endif
             break;
     }
     if (p == NULL) {

@@ -5,6 +5,12 @@ LOCAL_PATH:= $(call my-dir)
 #
 
 include $(CLEAR_VARS)
+ifneq ($(filter rk%, $(TARGET_BOARD_PLATFORM)), )
+LOCAL_CFLAGS := -DAVS50
+BUILD_FF_PLAYER := true
+else
+BUILD_FF_PLAYER := false
+endif
 
 LOCAL_SRC_FILES:=               \
     ActivityManager.cpp         \
@@ -55,7 +61,23 @@ LOCAL_C_INCLUDES :=                                                 \
     $(TOP)/external/tremolo/Tremolo                                 \
     libcore/include                                                 \
 
-LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall
+ifeq ($(strip $(BUILD_FF_PLAYER)),true)
+LOCAL_SRC_FILES += \
+    FFPlayer.cpp
+
+LOCAL_CFLAGS += \
+    -DUSE_FFPLAYER
+
+LOCAL_SHARED_LIBRARIES += \
+    librkffplayer
+
+LOCAL_C_INCLUDES += \
+    $(TOP)/frameworks/av/media/libstagefright/libvpu/common             \
+    $(TOP)/frameworks/av/media/libstagefright/libvpu/common/include \
+    $(TOP)/hardware/rockchip/librkvpu                               \
+    $(TOP)/frameworks/av/media/rk_ffplayer
+endif
+LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall -Wno-error=unused-parameter -Wno-error=unused-function
 LOCAL_CLANG := true
 
 LOCAL_MODULE:= libmediaplayerservice

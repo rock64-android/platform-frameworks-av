@@ -3448,7 +3448,7 @@ status_t AudioFlinger::MixerThread::createAudioPatch_l(const struct audio_patch 
                                                           audio_patch_handle_t *handle)
 {
     status_t status;
-    if (property_get_bool("af.patch_park", false /* default_value */)) {
+    if (property_get_bool("af.patch_park", true /* default_value */)) {
         // Park FastMixer to avoid potential DOS issues with writing to the HAL
         // or if HAL does not properly lock against access.
         AutoPark<FastMixer> park(mFastMixer);
@@ -3538,7 +3538,7 @@ status_t AudioFlinger::PlaybackThread::createAudioPatch_l(const struct audio_pat
 status_t AudioFlinger::MixerThread::releaseAudioPatch_l(const audio_patch_handle_t handle)
 {
     status_t status;
-    if (property_get_bool("af.patch_park", false /* default_value */)) {
+    if (property_get_bool("af.patch_park", true /* default_value */)) {
         // Park FastMixer to avoid potential DOS issues with writing to the HAL
         // or if HAL does not properly lock against access.
         AutoPark<FastMixer> park(mFastMixer);

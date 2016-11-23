@@ -122,6 +122,15 @@ enum media_info_type {
     // Bandwidth in recent past
     MEDIA_INFO_NETWORK_BANDWIDTH = 703,
 
+    //LoadingPercent add by xhr
+    MEDIA_INFO_BUFFERING_PERCENT = 705,
+
+    //LoadingRate add by xhr
+    MEDIA_INFO_LAODING_RATE = 706,
+
+    //decoder cfg suport audio play whether,add by xhr
+    MEDIA_INFO_DECODER_CFG_AUDIO_SUPPORT = 708,
+
     // 8xx
     // Bad interleaving means that a media has been improperly interleaved or not
     // interleaved at all, e.g has all the video samples first then all the audio

@@ -95,7 +95,7 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
         {
             #ifdef USE_FFPLAYER
                 ALOGD("Create Instance of RockMetaDataRetriever");
-                //p =  new RK_MetadataRetriever;
+                p =  new RK_MetadataRetriever;
             #else
                 ALOGD("Create Instance of StagefrightMetaDataRetriever");
                 p = new StagefrightMetadataRetriever;
@@ -108,7 +108,7 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
             #ifdef USE_FFPLAYER
                 ALOGD("Create Instance of RockMetaDataRetriever, unknowType =%d; FF_PLAYER=%d; NU_PLAYER=%d", 
                                                                  playerType, FF_PLAYER, NU_PLAYER);
-                //p =  new RK_MetadataRetriever;
+                p =  new RK_MetadataRetriever;
             #else
                 ALOGE("player type %d is not supported",  playerType);
             #endif

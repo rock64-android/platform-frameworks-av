@@ -504,9 +504,14 @@ void CameraClient::releaseRecordingFrameHandle(native_handle_t *handle) {
     {
         Mutex::Autolock l(mAvailableCallbackBuffersLock);
         if (!mAvailableCallbackBuffers.empty()) {
-            dataPtr = mAvailableCallbackBuffers.back();
-            mAvailableCallbackBuffers.pop_back();
-        }
+#if 1
+			dataPtr = *mAvailableCallbackBuffers.begin();
+			mAvailableCallbackBuffers.erase(mAvailableCallbackBuffers.begin());
+#else
+			dataPtr = mAvailableCallbackBuffers.back();
+			mAvailableCallbackBuffers.pop_back();
+#endif
+		}
     }
 
     if (dataPtr == nullptr) {

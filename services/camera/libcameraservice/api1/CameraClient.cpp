@@ -513,15 +513,6 @@ void CameraClient::releaseRecordingFrameHandle(native_handle_t *handle) {
 #endif
 		}
     }
-#if 1
-	//there are two strange tings:
-	//1) handle returned is not equal to sent
-	//2) if not close the received, here will cause fd leak.
-	//	 fd opened by process camera server will expand quickly.
-	//3) explicit closing handle here can fix fd leak. 
-	native_handle_close(handle);
-	native_handle_delete(handle);
-#endif	
     if (dataPtr == nullptr) {
         ALOGE("%s: %d: No callback buffer available. Dropping a native handle.", __FUNCTION__,
                 __LINE__);
@@ -534,12 +525,26 @@ void CameraClient::releaseRecordingFrameHandle(native_handle_t *handle) {
         native_handle_close(handle);
         native_handle_delete(handle);
         return;
-    }
+    } 
 
     VideoNativeHandleMetadata *metadata = (VideoNativeHandleMetadata*)(dataPtr->pointer());
     metadata->eType = kMetadataBufferTypeNativeHandleSource;
-    metadata->pHandle = handle;
-
+	
+#if 1
+	if (metadata->pHandle != handle) {
+		//there are two strange tings:
+		//1) handle returned is not equal to sent
+		//2) if not close the received, here will cause fd leak.
+		//	 fd opened by process camera server will expand quickly.
+		//3) explicit closing handle here can fix fd leak. 
+		native_handle_close(handle);
+		native_handle_delete(handle);
+	}
+	//not update handle
+	//  metadata->pHandle = handle;
+#else
+	metadata->pHandle = handle;
+#endif	
     mHardware->releaseRecordingFrame(dataPtr);
 }
 

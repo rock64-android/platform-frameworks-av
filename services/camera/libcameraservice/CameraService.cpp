@@ -430,6 +430,10 @@ Status CameraService::getNumberOfCameras(int32_t type, int32_t* numCameras) {
     ATRACE_CALL();
     switch (type) {
         case CAMERA_TYPE_BACKWARD_COMPATIBLE:
+            if(0 == mNumberOfNormalCameras) {
+                ALOGE("No camera be found ! check again...");
+                onFirstRef();
+            }
             *numCameras = mNumberOfNormalCameras;
             break;
         case CAMERA_TYPE_ALL:

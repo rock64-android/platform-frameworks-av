@@ -801,6 +801,8 @@ status_t ACodec::allocateBuffersOnPort(OMX_U32 portIndex) {
             size_t bufSize = def.nBufferSize;
             if (type == kMetadataBufferTypeANWBuffer) {
                 bufSize = sizeof(VideoNativeMetadata);
+                if (portIndex == kPortIndexInput)
+                   bufSize += 4; //add wfd flag size
             } else if (type == kMetadataBufferTypeNativeHandleSource) {
                 bufSize = sizeof(VideoNativeHandleMetadata);
             }
@@ -811,7 +813,7 @@ status_t ACodec::allocateBuffersOnPort(OMX_U32 portIndex) {
             // size for native metadata buffers.
             size_t allottedSize = bufSize;
             if (portIndex == kPortIndexInput && type == kMetadataBufferTypeANWBuffer) {
-                bufSize = max(sizeof(VideoGrallocMetadata), sizeof(VideoNativeMetadata));
+                bufSize = max(sizeof(VideoGrallocMetadata), sizeof(VideoNativeMetadata)+4);  //add wfd flag size
             } else if (portIndex == kPortIndexInput && type == kMetadataBufferTypeCameraSource) {
                 bufSize = max(bufSize, sizeof(VideoNativeMetadata));
             }

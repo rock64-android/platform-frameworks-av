@@ -39,7 +39,7 @@
 
 namespace android {
 
-SurfaceMediaSource::SurfaceMediaSource(uint32_t bufferWidth, uint32_t bufferHeight) :
+SurfaceMediaSource::SurfaceMediaSource(uint32_t bufferWidth, uint32_t bufferHeight, bool wfd_flag) :
     mWidth(bufferWidth),
     mHeight(bufferHeight),
     mCurrentSlot(BufferQueue::INVALID_BUFFER_SLOT),
@@ -51,7 +51,8 @@ SurfaceMediaSource::SurfaceMediaSource(uint32_t bufferWidth, uint32_t bufferHeig
     mNumFramesEncoded(0),
     mFirstFrameTimestamp(0),
     mMaxAcquiredBufferCount(4),  // XXX double-check the default
-    mUseAbsoluteTimestamps(false) {
+    mUseAbsoluteTimestamps(false),
+    mWfd_flag(wfd_flag) {
     ALOGV("SurfaceMediaSource");
 
     if (bufferWidth == 0 || bufferHeight == 0) {
@@ -254,7 +255,7 @@ sp<MetaData> SurfaceMediaSource::getFormat()
 // Note: Call only when you have the lock
 void SurfaceMediaSource::passMetadataBuffer_l(MediaBuffer **buffer,
         ANativeWindowBuffer *bufferHandle) const {
-    *buffer = new MediaBuffer(sizeof(VideoNativeMetadata));
+    *buffer = new MediaBuffer(mWfd_flag?(sizeof(VideoNativeMetadata)+4):sizeof(VideoNativeMetadata));
     VideoNativeMetadata *data = (VideoNativeMetadata *)(*buffer)->data();
     if (data == NULL) {
         ALOGE("Cannot allocate memory for metadata buffer!");
@@ -263,6 +264,10 @@ void SurfaceMediaSource::passMetadataBuffer_l(MediaBuffer **buffer,
     data->eType = metaDataStoredInVideoBuffers();
     data->pBuffer = bufferHandle;
     data->nFenceFd = -1;
+    if (mWfd_flag) {
+       uint32_t temp = 0x1234;
+       memcpy(((char *)((*buffer)->data())+sizeof(VideoNativeMetadata)), &temp, sizeof(temp));
+    }
     ALOGV("handle = %p, offset = %zu, length = %zu",
             bufferHandle, (*buffer)->range_length(), (*buffer)->range_offset());
 }
@@ -375,9 +380,17 @@ status_t SurfaceMediaSource::read(
 static buffer_handle_t getMediaBufferHandle(MediaBuffer *buffer) {
     // need to convert to char* for pointer arithmetic and then
     // copy the byte stream into our handle
-    buffer_handle_t bufferHandle;
-    memcpy(&bufferHandle, (char*)(buffer->data()) + 4, sizeof(buffer_handle_t));
-    return bufferHandle;
+    //buffer_handle_t bufferHandle;
+    //memcpy(&bufferHandle, (char*)(buffer->data()) + 4, sizeof(buffer_handle_t));
+    //return bufferHandle;
+    VideoNativeMetadata *data = (VideoNativeMetadata *)(buffer)->data();
+    if (data == NULL) {
+        ALOGE("Cannot allocate memory for metadata buffer!");
+        return NULL;
+    }
+    ANativeWindowBuffer *bufferANB = data->pBuffer;
+    return  bufferANB->handle;
+
 }
 
 void SurfaceMediaSource::signalBufferReturned(MediaBuffer *buffer) {

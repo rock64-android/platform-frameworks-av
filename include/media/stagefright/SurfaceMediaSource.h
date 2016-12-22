@@ -73,7 +73,7 @@ public:
         virtual void onFrameAvailable() = 0;
     };
 
-    SurfaceMediaSource(uint32_t bufferWidth, uint32_t bufferHeight);
+    SurfaceMediaSource(uint32_t bufferWidth, uint32_t bufferHeight, bool wfd_flag=false);
 
     virtual ~SurfaceMediaSource();
 
@@ -235,6 +235,8 @@ private:
     Condition mFrameAvailableCondition;
 
     Condition mMediaBuffersAvailableCondition;
+
+    bool mWfd_flag;
 
     // Allocate and return a new MediaBuffer and pass the ANW buffer as metadata into it.
     void passMetadataBuffer_l(MediaBuffer **buffer, ANativeWindowBuffer *bufferHandle) const;

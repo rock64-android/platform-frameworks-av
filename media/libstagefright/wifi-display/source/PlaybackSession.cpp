@@ -1046,7 +1046,7 @@ status_t WifiDisplaySource::PlaybackSession::addVideoSource(
                 &levelIdc,
                 &constraintSet));
 
-    sp<SurfaceMediaSource> source = new SurfaceMediaSource(width, height);
+    sp<SurfaceMediaSource> source = new SurfaceMediaSource(width, height, true);
 
     source->setUseAbsoluteTimestamps();
 

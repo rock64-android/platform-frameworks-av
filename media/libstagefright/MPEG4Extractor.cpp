@@ -55,6 +55,10 @@ namespace android {
 enum {
     // max track header chunk to return
     kMaxTrackHeaderSize = 32,
+
+    // maximum size of an atom. Some atoms can be bigger according to the spec,
+    // but we only allow up to this size.
+    kMaxAtomSize = 64 * 1024 * 1024,
 };
 
 class MPEG4Source : public MediaSource {
@@ -370,7 +374,6 @@ MPEG4Extractor::MPEG4Extractor(const sp<DataSource> &source)
       mMdatFound(false),
       mDataSource(source),
       mInitCheck(NO_INIT),
-      mHasVideo(false),
       mHeaderTimescale(0),
       mIsQT(false),
       mFirstTrack(NULL),
@@ -475,7 +478,8 @@ sp<MetaData> MPEG4Extractor::getTrackMetaData(
             } else {
                 uint32_t sampleIndex;
                 uint32_t sampleTime;
-                if (track->sampleTable->findThumbnailSample(&sampleIndex) == OK
+                if (track->timescale != 0 &&
+                        track->sampleTable->findThumbnailSample(&sampleIndex) == OK
                         && track->sampleTable->getMetaDataForSample(
                             sampleIndex, NULL /* offset */, NULL /* size */,
                             &sampleTime) == OK) {
@@ -541,11 +545,13 @@ status_t MPEG4Extractor::readMetaData() {
     }
 
     if (mInitCheck == OK) {
-        if (mHasVideo) {
+        if (findTrackByMimePrefix("video/") != NULL) {
             mFileMetaData->setCString(
                     kKeyMIMEType, MEDIA_MIMETYPE_CONTAINER_MPEG4);
-        } else {
+        } else if (findTrackByMimePrefix("audio/") != NULL) {
             mFileMetaData->setCString(kKeyMIMEType, "audio/mp4");
+        } else {
+            mFileMetaData->setCString(kKeyMIMEType, "application/octet-stream");
         }
     } else {
         mInitCheck = err;
@@ -880,6 +886,13 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         ALOGE("b/23540914");
         return ERROR_MALFORMED;
     }
+    if (chunk_type != FOURCC('m', 'd', 'a', 't') && chunk_data_size > kMaxAtomSize) {
+        char errMsg[100];
+        sprintf(errMsg, "%s atom has size %" PRId64, chunk, chunk_data_size);
+        ALOGE("%s (b/28615448)", errMsg);
+        android_errorWriteWithInfoLog(0x534e4554, "28615448", -1, errMsg, strlen(errMsg));
+        return ERROR_MALFORMED;
+    }
 
     if (chunk_type != FOURCC('c', 'p', 'r', 't')
             && chunk_type != FOURCC('c', 'o', 'v', 'r')
@@ -918,6 +931,10 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         case FOURCC('e', 'd', 't', 's'):
         case FOURCC('w', 'a', 'v', 'e'):
         {
+            if (chunk_type == FOURCC('m', 'o', 'o', 'v') && depth != 0) {
+                ALOGE("moov: depth %d", depth);
+                return ERROR_MALFORMED;
+            }
             if (chunk_type == FOURCC('m', 'o', 'o', 'f') && !mMoofFound) {
                 // store the offset of the first segment
                 mMoofFound = true;
@@ -946,6 +963,10 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
             bool isTrack = false;
             if (chunk_type == FOURCC('t', 'r', 'a', 'k')) {
+                if (depth != 1) {
+                    ALOGE("trak: depth %d", depth);
+                    return ERROR_MALFORMED;
+                }
                 isTrack = true;
 
                 Track *track = new Track;
@@ -969,6 +990,10 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
             while (*offset < stop_offset) {
                 status_t err = parseChunk(offset, depth + 1);
                 if (err != OK) {
+                    if (isTrack) {
+                        mLastTrack->skipTrack = true;
+                        break;
+                    }
                     return err;
                 }
             }
@@ -1314,10 +1339,6 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
         case FOURCC('s', 't', 's', 'd'):
         {
-            if (chunk_data_size < 8) {
-                return ERROR_MALFORMED;
-            }
-
             uint8_t buffer[8];
             if (chunk_data_size < (off64_t)sizeof(buffer)) {
                 return ERROR_MALFORMED;
@@ -1470,8 +1491,6 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         case FOURCC('h', 'v', 'c', '1'):
         case FOURCC('h', 'e', 'v', '1'):
         {
-            mHasVideo = true;
-
             uint8_t buffer[78];
             if (chunk_data_size < (ssize_t)sizeof(buffer)) {
                 // Basic VideoSampleEntry size.
@@ -1814,6 +1833,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         case FOURCC('b', 't', 'r', 't'):
         {
             *offset += chunk_size;
+            if (mLastTrack == NULL) {
+                return ERROR_MALFORMED;
+            }
 
             uint8_t buffer[12];
             if (chunk_data_size != sizeof(buffer)) {
@@ -1983,6 +2005,10 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         {
             *offset += chunk_size;
 
+            if (depth != 1) {
+                ALOGE("mvhd: depth %d", depth);
+                return ERROR_MALFORMED;
+            }
             if (chunk_data_size < 32) {
                 return ERROR_MALFORMED;
             }
@@ -4110,11 +4136,13 @@ status_t MPEG4Source::parseTrackFragmentRun(off64_t offset, off64_t size) {
     if (!mDataSource->getUInt32(offset, &flags)) {
         return ERROR_MALFORMED;
     }
-    ALOGV("fragment run flags: %08x", flags);
-
-    if (flags & 0xff000000) {
-        return -EINVAL;
-    }
+    // |version| only affects SampleCompositionTimeOffset field.
+    // If version == 0, SampleCompositionTimeOffset is uint32_t;
+    // Otherwise, SampleCompositionTimeOffset is int32_t.
+    // Sample.compositionOffset is defined as int32_t.
+    uint8_t version = flags >> 24;
+    flags &= 0xffffff;
+    ALOGV("fragment run version: 0x%02x, flags: 0x%06x", version, flags);
 
     if ((flags & kFirstSampleFlagsPresent) && (flags & kSampleFlagsPresent)) {
         // These two shall not be used together.

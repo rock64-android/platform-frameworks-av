@@ -83,16 +83,11 @@ status_t MediaPlayerFactory::registerFactory_l(IFactory* factory,
 }
 
 static player_type getDefaultPlayerType() {
-    char value[PROPERTY_VALUE_MAX];
-    if (property_get("media.stagefright.use-awesome", value, NULL)
-            && (!strcmp("1", value) || !strcasecmp("true", value))) {
-        return STAGEFRIGHT_PLAYER;
-    }
-
-    if (property_get("persist.sys.media.use-awesome", value, NULL)
-            && !strcasecmp("true", value)) {
-        return STAGEFRIGHT_PLAYER;
-    }
+	char value[PROPERTY_VALUE_MAX];
+	if (property_get("persist.cts_gts.status", value, NULL)
+		&& (!strcmp("1", value) || !strcasecmp("true", value))) {
+		return NU_PLAYER;
+	}
 
 #ifndef  USE_FFPLAYER
     return NU_PLAYER;
@@ -116,7 +111,7 @@ void MediaPlayerFactory::unregisterFactory(player_type type) {
 #define GET_PLAYER_TYPE_IMPL(a...)                      \
     Mutex::Autolock lock_(&sLock);                      \
                                                         \
-    player_type ret = STAGEFRIGHT_PLAYER;               \
+    player_type ret = NU_PLAYER;               \
     float bestScore = 0.0;                              \
                                                         \
     for (size_t i = 0; i < sFactoryMap.size(); ++i) {   \
@@ -160,34 +155,17 @@ void MediaPlayerFactory::unregisterFactory(player_type type) {
     }                                                   \
                                                         \
     return ret;
-	
-#define GET_PLAYER_TYPE_IMPL_CTS(a...)                      \
-    Mutex::Autolock lock_(&sLock);                      \
-                                                        \
-		player_type ret = STAGEFRIGHT_PLAYER;           		          \
-		float bestScore = 0.0;                           		\
-                                                        \
-    for (size_t i = 0; i < sFactoryMap.size(); ++i) {   \
-                                                        \
-        IFactory* v = sFactoryMap.valueAt(i);           \
-        float thisScore;                                \
-        CHECK(v != NULL);                               \
-        thisScore = v->scoreFactory(a, bestScore);      \
-        if (thisScore > bestScore) {                    \
-            ret = sFactoryMap.keyAt(i);                 \
-            bestScore = thisScore;                      \
-        }                                               \
-    }                                                   \
-                                                        \
-    if (0.0 == bestScore) {                             \
-        ret = STAGEFRIGHT_PLAYER;                       \
-    }                                                   \
-                                                        \
-    return ret;
+
 #endif
 
 player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               const char* url) {
+	char value[PROPERTY_VALUE_MAX];
+	if (property_get("persist.cts_gts.status", value, NULL)
+		&& (!strcmp("1", value) || !strcasecmp("true", value))) {
+		return NU_PLAYER;
+	}
+
 #ifdef USE_FFPLAYER
     if(!strncasecmp("http://localhost:", url, 17)) {
         return NU_PLAYER;
@@ -222,22 +200,7 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
 #ifdef USE_FFPLAYER 
     String8 filePath;
     getFileName(fd,&filePath);
-    //for cts and some apk
-    if(strstr(filePath.string(),".apk"))
-    {
-        char buf[20];
-        lseek(fd, offset, SEEK_SET);
-        read(fd, buf, sizeof(buf));
-        lseek(fd, offset, SEEK_SET);
-        uint32_t ident = *((uint32_t*)buf);
-        char value[PROPERTY_VALUE_MAX];
-        property_get("sys.cts_gts.status", value, "false");
-        if(!strcmp(value,"true") && ident==1684558925 && !strcmp(filePath.string(),"/data/app/com.android.cts.security-1/base.apk")){
-            return NU_PLAYER;
-        } else {
-            GET_PLAYER_TYPE_IMPL_CTS(client, fd, offset, length);
-        }
-    }
+
     if(strstr(filePath.string(),".ogg")){
         return NU_PLAYER;
     }

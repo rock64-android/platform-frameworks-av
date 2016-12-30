@@ -88,6 +88,7 @@ void MetadataRetrieverClient::disconnect()
 static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
 {
     sp<MediaMetadataRetrieverBase> p;
+	char value[PROPERTY_VALUE_MAX];
     switch (playerType) {
         case STAGEFRIGHT_PLAYER:
         case FF_PLAYER:
@@ -100,6 +101,11 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
                 ALOGD("Create Instance of StagefrightMetaDataRetriever");
                 p = new StagefrightMetadataRetriever;
             #endif
+	        if (property_get("persist.cts_gts.status", value, NULL)
+		        && (!strcmp("1", value) || !strcasecmp("true", value))) {
+                ALOGD("Create Instance of StagefrightMetaDataRetriever");
+                p = new StagefrightMetadataRetriever;
+	        }
             break;
         }
         default:
@@ -112,6 +118,11 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
             #else
                 ALOGE("player type %d is not supported",  playerType);
             #endif
+	        if (property_get("persist.cts_gts.status", value, NULL)
+		        && (!strcmp("1", value) || !strcasecmp("true", value))) {
+                ALOGD("Create Instance of StagefrightMetaDataRetriever");
+                p = new StagefrightMetadataRetriever;
+	        }
             break;
     }
     if (p == NULL) {

@@ -3132,6 +3132,22 @@ status_t ACodec::setVideoPortFormatType(
             }
         }
 
+        if (!strcmp("OMX.rk.video_encoder.avc", mComponentName.c_str())) {
+            if (portIndex == kPortIndexInput
+                    && colorFormat == format.eColorFormat) {
+                // eCompressionFormat does not seem right.
+                found = true;
+                break;
+            }
+            if (portIndex == kPortIndexOutput
+                    && compressionFormat == format.eCompressionFormat) {
+                // eColorFormat does not seem right.
+                found = true;
+                break;
+            }
+        }
+
+
         if (format.eCompressionFormat == compressionFormat
             && format.eColorFormat == colorFormat) {
             found = true;

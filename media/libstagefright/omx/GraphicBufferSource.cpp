@@ -224,7 +224,7 @@ void GraphicBufferSource::omxExecuting() {
             mNumFramesAvailable, mCodecBuffers.size());
     CHECK(!mExecuting);
     mExecuting = true;
-    mLastDataSpace = HAL_DATASPACE_UNKNOWN;
+    //mLastDataSpace = HAL_DATASPACE_UNKNOWN;
     ALOGV("clearing last dataSpace");
 
     // Start by loading up as many buffers as possible.  We want to do this,

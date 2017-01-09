@@ -98,7 +98,7 @@ private:
             struct dirent* entry, char* fileSpot);
     void loadSkipList();
     bool shouldSkipDirectory(char *path);
-
+    bool isBDDirectory(char* path);
 
     MediaScanner(const MediaScanner &);
     MediaScanner &operator=(const MediaScanner &);
@@ -119,6 +119,8 @@ public:
     virtual status_t handleStringTag(const char* name, const char* value) = 0;
     virtual status_t setMimeType(const char* mimeType) = 0;
 
+    virtual status_t scanBDDirectory(const char* path, long long lastModified,
+            long long fileSize) = 0;
 protected:
     // default encoding from MediaScanner::mLocale
     String8 mLocale;

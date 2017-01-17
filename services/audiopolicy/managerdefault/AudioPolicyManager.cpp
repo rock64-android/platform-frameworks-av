@@ -654,8 +654,10 @@ sp<IOProfile> AudioPolicyManager::getProfileForDirectOutput(
 #ifdef BOX_STRATEGY
     if(flags != AUDIO_OUTPUT_FLAG_DIRECT)
         return 0;
-    if ((flags == AUDIO_OUTPUT_FLAG_DIRECT) && (device & AUDIO_DEVICE_OUT_SPDIF))
-        device = AUDIO_DEVICE_OUT_SPDIF;
+    if (flags == AUDIO_OUTPUT_FLAG_DIRECT) {
+	if (device & AUDIO_DEVICE_OUT_AUX_DIGITAL) device = AUDIO_DEVICE_OUT_AUX_DIGITAL;
+	else if (device & AUDIO_DEVICE_OUT_SPDIF) device = AUDIO_DEVICE_OUT_SPDIF;
+    }
 #endif
     for (size_t i = 0; i < mHwModules.size(); i++) {
         if (mHwModules[i]->mHandle == 0) {

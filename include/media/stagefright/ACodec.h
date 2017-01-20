@@ -303,6 +303,7 @@ private:
     bool mCreateInputBuffersSuspended;
 
     bool mTunneled;
+    bool mXtsExoPlayer;
 
     OMX_INDEXTYPE mDescribeColorAspectsIndex;
     OMX_INDEXTYPE mDescribeHDRStaticInfoIndex;

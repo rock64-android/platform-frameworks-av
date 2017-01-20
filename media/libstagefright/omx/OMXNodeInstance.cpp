@@ -1174,7 +1174,7 @@ status_t OMXNodeInstance::createPersistentInputSurface(
     sp<IGraphicBufferConsumer> consumer;
     BufferQueue::createBufferQueue(&producer, &consumer);
     consumer->setConsumerName(name);
-    consumer->setConsumerUsageBits(GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_FB);
+    consumer->setConsumerUsageBits(GRALLOC_USAGE_HW_VIDEO_ENCODER);
 
     sp<BufferQueue::ProxyConsumerListener> proxy =
         new BufferQueue::ProxyConsumerListener(NULL);

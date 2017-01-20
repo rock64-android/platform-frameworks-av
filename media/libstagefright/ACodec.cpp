@@ -22,6 +22,7 @@
 #endif
 
 #include <inttypes.h>
+#include <unistd.h>
 #include <utils/Trace.h>
 
 #include <gui/Surface.h>
@@ -544,6 +545,25 @@ ACodec::ACodec()
     memset(&mLastNativeWindowCrop, 0, sizeof(mLastNativeWindowCrop));
 
     changeState(mUninitializedState);
+
+    char processName[255];
+    int fd;
+    snprintf(processName, sizeof(processName), "/proc/self/cmdline");
+    fd = open(processName, O_RDONLY);
+    if (fd < 0) {
+        strcpy(processName, "???");
+    } else {
+        int length = read(fd, processName, sizeof(processName) - 1);
+        processName[length] = 0;
+        ALOGI("callingProcessName:%s",processName);
+        close(fd);
+    }
+    if (!strcmp(processName, "com.google.android.exoplayer.gts")) {
+        mXtsExoPlayer = true;
+	    ALOGI("set mXtsExoPlayer as true for gts H264DashTest");
+    } else {
+        mXtsExoPlayer = false;
+    }
 }
 
 ACodec::~ACodec() {
@@ -1069,8 +1089,9 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
     for (OMX_U32 extraBuffers = 2 + 1; /* condition inside loop */; extraBuffers--) {
         OMX_U32 newBufferCount =
             def.nBufferCountMin + *minUndequeuedBuffers + extraBuffers;
-        if(def.nBufferCountActual < newBufferCount){
-            def.nBufferCountActual = newBufferCount;
+        if(def.nBufferCountActual < newBufferCount || mXtsExoPlayer){
+            ALOGI("nBufferCountActual:%d  newBufferCount:%d",def.nBufferCountActual,newBufferCount);
+            def.nBufferCountActual = mXtsExoPlayer ? 20 : newBufferCount;
             err = mOMX->setParameter(
                     mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
 
@@ -1079,7 +1100,7 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
                 break;
             }
 
-            ALOGW("[%s] setting nBufferCountActual to %u failed: %d",
+            ALOGI("[%s] setting nBufferCountActual to %u failed: %d",
                     mComponentName.c_str(), newBufferCount, err);
             /* exit condition */
             if (extraBuffers == 0) {

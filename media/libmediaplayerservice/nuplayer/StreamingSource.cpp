@@ -33,7 +33,7 @@
 
 namespace android {
 
-const int32_t kNumListenerQueuePackets = 80;
+const int32_t kNumListenerQueuePackets = 200;
 
 NuPlayer::StreamingSource::StreamingSource(
         const sp<AMessage> &notify,
@@ -41,6 +41,9 @@ NuPlayer::StreamingSource::StreamingSource(
     : Source(notify),
       mSource(source),
       mFinalResult(OK),
+      mWFDFlag(false),
+      mWFDStartSysTimeUs(-1),
+      mWFDStartMediaTimeUs(-1),
       mBuffering(false) {
 }
 
@@ -73,6 +76,11 @@ void NuPlayer::StreamingSource::start() {
     uint32_t parserFlags = ATSParser::TS_TIMESTAMPS_ARE_ABSOLUTE;
     if (sourceFlags & IStreamSource::kFlagAlignedVideoData) {
         parserFlags |= ATSParser::ALIGNED_VIDEO_DATA;
+    }
+
+    if ((sourceFlags >> 16 & 0xFFFF) == 0x1234) {
+        mWFDFlag = true;
+        ALOGD("NuPlayer::StreamingSource::start sourceFlags %x",sourceFlags);
     }
 
     mTSParser = new ATSParser(parserFlags);
@@ -113,8 +121,17 @@ void NuPlayer::StreamingSource::onReadBuffer() {
                 type = mask;
             }
 
-            mTSParser->signalDiscontinuity(
-                    (ATSParser::DiscontinuityType)type, extra);
+            if (mWFDFlag)
+            {
+                int64_t sys_timeUs;
+                int64_t mediaTimeUs;
+                if (extra->findInt64("wifidisplay_sys_timeUs", &sys_timeUs) && extra->findInt64("timeUs", &mediaTimeUs)) {
+                   mWFDStartSysTimeUs = sys_timeUs;
+                   mWFDStartMediaTimeUs = mediaTimeUs;
+                }
+            } else {
+                mTSParser->signalDiscontinuity((ATSParser::DiscontinuityType)type, extra);
+            }
         } else if (n < 0) {
             break;
         } else {

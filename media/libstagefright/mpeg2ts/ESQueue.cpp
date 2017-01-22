@@ -277,7 +277,7 @@ status_t ElementaryStreamQueue::appendData(
                 }
 
                 if (startOffset > 0) {
-                    ALOGI("found something resembling an H.264/MPEG syncword "
+                    ALOGV("found something resembling an H.264/MPEG syncword "
                           "at offset %zd",
                           startOffset);
                 }

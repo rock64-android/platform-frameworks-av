@@ -21,6 +21,7 @@
 #include <android/hardware/ICameraServiceListener.h>
 
 #include <cutils/multiuser.h>
+#include <cutils/properties.h>
 #include <utils/Vector.h>
 #include <utils/KeyedVector.h>
 #include <binder/AppOpsManager.h>
@@ -824,6 +825,7 @@ binder::Status CameraService::connectHelper(const sp<CALLBACK>& cameraCb, const 
     binder::Status ret = binder::Status::ok();
 
     String8 clientName8(clientPackageName);
+    property_set("sys.camera.callprocess", clientName8.string());
 
     int originalClientPid = 0;
 

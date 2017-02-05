@@ -1338,14 +1338,20 @@ void NuPlayer::onStart(int64_t startPositionUs) {
         flags |= Renderer::FLAG_REAL_TIME;
     }
 
+    if (mSource->isWFDStreaming()) {
+        flags |= Renderer::FLAG_WFD_STREAMING;
+    }
+
     sp<MetaData> audioMeta = mSource->getFormatMeta(true /* audio */);
     sp<MetaData> videoMeta = mSource->getFormatMeta(false /* audio */);
     if (audioMeta == NULL && videoMeta == NULL) {
         ALOGE("no metadata for either audio or video source");
-        mSource->stop();
-        mSourceStarted = false;
-        notifyListener(MEDIA_ERROR, MEDIA_ERROR_UNKNOWN, ERROR_MALFORMED);
-        return;
+        if (!mSource->isWFDStreaming()) {
+           mSource->stop();
+           mSourceStarted = false;
+           notifyListener(MEDIA_ERROR, MEDIA_ERROR_UNKNOWN, ERROR_MALFORMED);
+           return;
+        }
     }
     ALOGV_IF(audioMeta == NULL, "no metadata for audio source");  // video only stream
 

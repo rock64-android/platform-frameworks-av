@@ -41,6 +41,10 @@ struct NuPlayer::StreamingSource : public NuPlayer::Source {
 
     virtual bool isRealTime() const;
 
+    virtual bool isWFDStreaming() {return mWFDFlag != 0;}
+    virtual int64_t getWFDStartSysTimeUs() {return mWFDStartSysTimeUs;}
+    virtual int64_t getWFDStartMediaTimeUs() {return mWFDStartMediaTimeUs;}
+
 protected:
     virtual ~StreamingSource();
 
@@ -56,6 +60,10 @@ private:
     status_t mFinalResult;
     sp<NuPlayerStreamListener> mStreamListener;
     sp<ATSParser> mTSParser;
+
+    bool mWFDFlag;
+    int64_t mWFDStartSysTimeUs;
+    int64_t mWFDStartMediaTimeUs;
 
     bool mBuffering;
     Mutex mBufferingLock;

@@ -60,6 +60,11 @@ bool recordingAllowed(const String16& opPackageName, pid_t pid, uid_t uid) {
     const bool ok = checkPermission(sRecordAudio, pid, uid);
     if (!ok) {
         ALOGE("Request requires android.permission.RECORD_AUDIO");
+        if(isTrustedCallingUid(uid))
+        {
+            ALOGD("caijq recordingAllowed true.");
+            return true;
+        }
         return false;
     }
 
@@ -110,6 +115,11 @@ bool captureAudioOutputAllowed(pid_t pid, uid_t uid) {
     static const String16 sCaptureAudioOutput("android.permission.CAPTURE_AUDIO_OUTPUT");
     bool ok = checkPermission(sCaptureAudioOutput, pid, uid);
     if (!ok) ALOGE("Request requires android.permission.CAPTURE_AUDIO_OUTPUT");
+    if(isTrustedCallingUid(uid))
+    {
+        ALOGD("caijq captureAudioOutputAllowed true.");
+        return true;
+    }
     return ok;
 }
 

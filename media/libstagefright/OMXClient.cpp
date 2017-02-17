@@ -160,6 +160,8 @@ struct MuxOMX : public IOMX {
             const void *data,
             size_t size);
 
+    virtual size_t getLiveNodeSize();
+
 private:
     mutable Mutex mLock;
 
@@ -490,6 +492,23 @@ status_t MuxOMX::setInternalOption(
         const void *data,
         size_t size) {
     return getOMX(node)->setInternalOption(node, port_index, type, data, size);
+}
+
+size_t MuxOMX::getLiveNodeSize() {
+    size_t nodeSize = 0;
+    if (mLocalOMX.get() != NULL) {
+        nodeSize += mLocalOMX->getLiveNodeSize();
+    }
+    
+    if (mMediaServerOMX.get() != NULL) {
+        nodeSize += mMediaServerOMX->getLiveNodeSize();
+    }
+
+    if (mMediaCodecOMX.get() != NULL) {
+        nodeSize += mMediaCodecOMX->getLiveNodeSize();
+    }
+
+    return nodeSize;
 }
 
 OMXClient::OMXClient() {

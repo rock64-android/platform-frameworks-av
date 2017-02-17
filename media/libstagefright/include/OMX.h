@@ -163,6 +163,8 @@ public:
 
     void invalidateNodeID(node_id node);
 
+    virtual size_t getLiveNodeSize();
+
 protected:
     virtual ~OMX();
 

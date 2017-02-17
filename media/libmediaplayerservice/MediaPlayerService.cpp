@@ -60,6 +60,7 @@
 #include <media/stagefright/Utils.h>
 #include <media/stagefright/foundation/ADebug.h>
 #include <media/stagefright/foundation/ALooperRoster.h>
+#include <media/IMediaCodecService.h>
 #include <mediautils/BatteryNotifier.h>
 
 #include <memunreachable/memunreachable.h>
@@ -427,6 +428,41 @@ status_t MediaPlayerService::dump(int fd, const Vector<String16>& args)
     String8 result;
     SortedVector< sp<Client> > clients; //to serialise the mutex unlock & client destruction.
     SortedVector< sp<MediaRecorderClient> > mediaRecorderClients;
+    
+    bool hasScanFlag = false;
+    for (size_t i = 0; i < args.size(); i++) {
+        if (args[i] == String16("--scanable")) {
+            hasScanFlag = true;
+            break;
+        }
+    }
+    if (hasScanFlag) {
+        size_t nodeSize = 0;
+        if (mOMX.get() != NULL) {
+            nodeSize = mOMX->getLiveNodeSize();
+            ALOGD("media server omx nodes: %zu", nodeSize);
+        }
+
+        sp<IServiceManager> sm = defaultServiceManager();
+        sp<IBinder> codecbinder = sm->getService(String16("media.codec"));
+        sp<IMediaCodecService> codecservice = interface_cast<IMediaCodecService>(codecbinder);
+        sp<IOMX> mediaCodecOMX = NULL;
+        if (codecservice.get() != NULL) {
+            mediaCodecOMX = codecservice->getOMX();
+        }
+        if (mediaCodecOMX.get() != NULL) {
+            nodeSize += mediaCodecOMX->getLiveNodeSize();
+            ALOGD("media codec omx nodes: %zu", nodeSize);
+        }
+        
+        if (mClients.size() == 0 && nodeSize == 0) {
+            result.append(" MScanable(1)\n");
+        } else {
+            result.append(" MScanable(0)\n");
+        }
+        write(fd, result.string(), result.size());
+        return NO_ERROR;
+    }
 
     if (checkCallingPermission(String16("android.permission.DUMP")) == false) {
         snprintf(buffer, SIZE, "Permission Denial: "

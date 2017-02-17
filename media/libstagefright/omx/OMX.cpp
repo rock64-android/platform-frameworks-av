@@ -763,4 +763,11 @@ void OMX::invalidateNodeID_l(node_id node) {
     mNodeIDToInstance.removeItem(node);
 }
 
+size_t OMX::getLiveNodeSize() {
+    size_t nodeSize = mLiveNodes.size();
+    int pid = getpid();
+    ALOGD("Get live node num: %zu, pid: %d", nodeSize, pid);
+    return nodeSize;
+}
+
 }  // namespace android

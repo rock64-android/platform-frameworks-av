@@ -200,6 +200,7 @@ public:
             InternalOptionType type,
             const void *data,
             size_t size) = 0;
+    virtual size_t getLiveNodeSize() = 0;
 };
 
 struct omx_message {

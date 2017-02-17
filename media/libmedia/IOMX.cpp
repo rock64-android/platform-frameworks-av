@@ -62,6 +62,7 @@ enum {
     UPDATE_GRAPHIC_BUFFER_IN_META,
     CONFIGURE_VIDEO_TUNNEL_MODE,
     UPDATE_NATIVE_HANDLE_IN_META,
+    GET_LIVE_NODE_SIZE,
 };
 
 class BpOMX : public BpInterface<IOMX> {
@@ -620,6 +621,14 @@ public:
         data.write(optionData, size);
         data.writeInt32(type);
         remote()->transact(SET_INTERNAL_OPTION, data, &reply);
+
+        return reply.readInt32();
+    }
+
+    virtual size_t getLiveNodeSize() {
+        Parcel data, reply;
+        data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
+        remote()->transact(GET_LIVE_NODE_SIZE, data, &reply);
 
         return reply.readInt32();
     }
@@ -1219,6 +1228,15 @@ status_t BnOMX::onTransact(
                 reply->writeInt32(index);
             }
 
+            return OK;
+        }
+
+        case GET_LIVE_NODE_SIZE:
+        {
+            CHECK_OMX_INTERFACE(IOMX, data, reply);
+            size_t size = getLiveNodeSize();
+
+            reply->writeInt32(size);
             return OK;
         }
 

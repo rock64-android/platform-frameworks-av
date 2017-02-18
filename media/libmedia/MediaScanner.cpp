@@ -23,6 +23,8 @@
 
 #include <sys/stat.h>
 #include <dirent.h>
+#include <binder/IServiceManager.h>
+#include <media/IMediaPlayerService.h>
 
 namespace android {
 
@@ -158,7 +160,15 @@ MediaScanResult MediaScanner::doProcessDirectory(
     }
 
     MediaScanResult result = MEDIA_SCAN_RESULT_OK;
+    sp<IServiceManager> sm = defaultServiceManager();
+    sp<IBinder> playerbinder = sm->getService(String16("media.player"));
+    sp<IMediaPlayerService> mediaservice = interface_cast<IMediaPlayerService>(playerbinder);
     while ((entry = readdir(dir))) {
+
+        if(mediaservice->hasMediaClient()){
+            sleep(1);
+            //ALOGE("add by jkand.huang, scan sleep when play video.\n");
+        }
         if (doProcessDirectoryEntry(path, pathRemaining, client, noMedia, entry, fileSpot)
                 == MEDIA_SCAN_RESULT_ERROR) {
             result = MEDIA_SCAN_RESULT_ERROR;

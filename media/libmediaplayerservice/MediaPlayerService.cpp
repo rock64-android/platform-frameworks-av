@@ -428,41 +428,6 @@ status_t MediaPlayerService::dump(int fd, const Vector<String16>& args)
     String8 result;
     SortedVector< sp<Client> > clients; //to serialise the mutex unlock & client destruction.
     SortedVector< sp<MediaRecorderClient> > mediaRecorderClients;
-    
-    bool hasScanFlag = false;
-    for (size_t i = 0; i < args.size(); i++) {
-        if (args[i] == String16("--scanable")) {
-            hasScanFlag = true;
-            break;
-        }
-    }
-    if (hasScanFlag) {
-        size_t nodeSize = 0;
-        if (mOMX.get() != NULL) {
-            nodeSize = mOMX->getLiveNodeSize();
-            ALOGD("media server omx nodes: %zu", nodeSize);
-        }
-
-        sp<IServiceManager> sm = defaultServiceManager();
-        sp<IBinder> codecbinder = sm->getService(String16("media.codec"));
-        sp<IMediaCodecService> codecservice = interface_cast<IMediaCodecService>(codecbinder);
-        sp<IOMX> mediaCodecOMX = NULL;
-        if (codecservice.get() != NULL) {
-            mediaCodecOMX = codecservice->getOMX();
-        }
-        if (mediaCodecOMX.get() != NULL) {
-            nodeSize += mediaCodecOMX->getLiveNodeSize();
-            ALOGD("media codec omx nodes: %zu", nodeSize);
-        }
-        
-        if (mClients.size() == 0 && nodeSize == 0) {
-            result.append(" MScanable(1)\n");
-        } else {
-            result.append(" MScanable(0)\n");
-        }
-        write(fd, result.string(), result.size());
-        return NO_ERROR;
-    }
 
     if (checkCallingPermission(String16("android.permission.DUMP")) == false) {
         snprintf(buffer, SIZE, "Permission Denial: "
@@ -565,11 +530,14 @@ status_t MediaPlayerService::dump(int fd, const Vector<String16>& args)
 
         bool dumpMem = false;
         bool unreachableMemory = false;
+        bool dumpScan = false;
         for (size_t i = 0; i < args.size(); i++) {
             if (args[i] == String16("-m")) {
                 dumpMem = true;
             } else if (args[i] == String16("--unreachable")) {
                 unreachableMemory = true;
+            } else if (args[i] == String16("--scanable")) {
+                dumpScan = true;
             }
         }
         if (dumpMem) {
@@ -582,6 +550,13 @@ status_t MediaPlayerService::dump(int fd, const Vector<String16>& args)
             // TODO - should limit be an argument parameter?
             std::string s = GetUnreachableMemoryString(true /* contents */, 10000 /* limit */);
             result.append(s.c_str(), s.size());
+        }
+        if (dumpScan) {
+            if (hasMediaClient()) {
+                result.append(" MScanable(0)\n");
+            } else {
+                result.append(" MScanable(1)\n");
+            }
         }
     }
     write(fd, result.string(), result.size());
@@ -598,6 +573,33 @@ bool MediaPlayerService::hasClient(wp<Client> client)
 {
     Mutex::Autolock lock(mLock);
     return mClients.indexOf(client) != NAME_NOT_FOUND;
+}
+
+bool MediaPlayerService::hasMediaClient()
+{
+    size_t nodeSize = 0;
+    if (mOMX.get() != NULL) {
+        nodeSize = mOMX->getLiveNodeSize();
+        ALOGV("media server omx nodes: %zu", nodeSize);
+    }
+
+    sp<IServiceManager> sm = defaultServiceManager();
+    sp<IBinder> codecbinder = sm->getService(String16("media.codec"));
+    sp<IMediaCodecService> codecservice = interface_cast<IMediaCodecService>(codecbinder);
+    sp<IOMX> mediaCodecOMX = NULL;
+    if (codecservice.get() != NULL) {
+        mediaCodecOMX = codecservice->getOMX();
+    }
+    if (mediaCodecOMX.get() != NULL) {
+        nodeSize += mediaCodecOMX->getLiveNodeSize();
+        ALOGV("media codec omx nodes: %zu", nodeSize);
+    }
+    
+    if (mClients.size() == 0 && nodeSize == 0) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 MediaPlayerService::Client::Client(

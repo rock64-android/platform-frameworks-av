@@ -228,6 +228,7 @@ public:
 
             void                removeClient(wp<Client> client);
             bool                hasClient(wp<Client> client);
+    virtual bool                hasMediaClient();
 
     enum {
         MEDIASERVER_PROCESS_DEATH = 0,

@@ -3358,6 +3358,19 @@ status_t ACodec::setupVideoDecoder(
         mIsLegacyVP9Decoder = err != OK;
     }
 
+    //add by xlm for mpeg4 4K not support
+    if (compressionFormat == OMX_VIDEO_CodingMPEG4
+        && (width > 1920 || height > 1920)) {
+        ALOGE("%s %d:The decoder does not support this resolution! codecid = %d, width = %d,height = %d",
+               __FUNCTION__,
+               __LINE__,
+               compressionFormat,
+               width,
+               height);
+        err = ERROR_OUT_OF_RANGE;
+        return err;
+    }
+
     err = setVideoPortFormatType(
             kPortIndexInput, compressionFormat, OMX_COLOR_FormatUnused);
 

@@ -766,7 +766,7 @@ void OMX::invalidateNodeID_l(node_id node) {
 size_t OMX::getLiveNodeSize() {
     size_t nodeSize = mLiveNodes.size();
     int pid = getpid();
-    ALOGD("Get live node num: %zu, pid: %d", nodeSize, pid);
+    ALOGV("Get live node num: %zu, pid: %d", nodeSize, pid);
     return nodeSize;
 }
 

@@ -645,11 +645,11 @@ sp<IOProfile> AudioPolicyManager::getProfileForDirectOutput(
 {
     // only retain flags that will drive the direct output profile selection
     // if explicitly requested
-    static const uint32_t kRelevantFlags =
-            (AUDIO_OUTPUT_FLAG_HW_AV_SYNC | AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD);
-    flags =
-        (audio_output_flags_t)((flags & kRelevantFlags) | AUDIO_OUTPUT_FLAG_DIRECT);
-
+   // static const uint32_t kRelevantFlags =
+   //         (AUDIO_OUTPUT_FLAG_HW_AV_SYNC | AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD);
+   // flags =
+   //     (audio_output_flags_t)((flags & kRelevantFlags) | AUDIO_OUTPUT_FLAG_DIRECT);
+    ALOGD("audiopolicymanager_getProfileForDirectOutput_flag: %d",flags);
     sp<IOProfile> profile;
 #ifdef BOX_STRATEGY
     if(flags != AUDIO_OUTPUT_FLAG_DIRECT)

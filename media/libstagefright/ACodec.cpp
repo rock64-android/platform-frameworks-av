@@ -1003,6 +1003,42 @@ status_t ACodec::setupNativeWindowSizeFormatAndUsage(
     }
 
     usage |= kVideoGrallocUsage;
+    OMX_EXTENSION_VIDEO_PARAM_HDR hdrParams;
+    InitOMXParams(&hdrParams);
+    err = mOMX->getParameter(
+            mNode, (OMX_INDEXTYPE)OMX_IndexParamVideoHDRRockchipExtensions, &hdrParams, sizeof(hdrParams));
+    ALOGE("%s %d colorSpace = %x,eDyncRange = %x",__FUNCTION__,__LINE__,hdrParams.eColorSpace,hdrParams.eDyncRange);
+    switch(hdrParams.eDyncRange) {
+        case OMX_RK_EXT_DyncrangeHDR10: {
+            usage |= ((2 << 24) & 0x0f000000); //HDR10
+            break;
+        }
+        case OMX_RK_EXT_DyncrangeHDRHLG: {
+            usage |= ((3 << 24) & 0x0f000000); //HDR HLG
+            break;
+        }
+        case OMX_RK_EXT_DyncrangeHDRDOLBY: {
+            usage |= ((4 << 24) & 0x0f000000); //HDR DOBLY VERSION
+            break;
+        }
+        default:
+            break;
+    }
+
+    switch(hdrParams.eColorSpace) {
+        case OMX_RK_EXT_ColorspaceBT709: {
+            usage |= GRALLOC_USAGE_PRIVATE_0; //BT709
+            break;
+        }
+        case OMX_RK_EXT_ColorspaceBT2020: {
+            if (hdrParams.eDyncRange != OMX_RK_EXT_DyncrangeHDR10 && hdrParams.eDyncRange != OMX_RK_EXT_DyncrangeHDRHLG)
+                usage |= ((1 << 24) & 0x0f000000); //BT2020
+            break;
+        }
+        default:
+            break;
+    }
+    
     *finalUsage = usage;
 
     memset(&mLastNativeWindowCrop, 0, sizeof(mLastNativeWindowCrop));

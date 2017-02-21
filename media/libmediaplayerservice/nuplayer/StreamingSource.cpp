@@ -80,6 +80,7 @@ void NuPlayer::StreamingSource::start() {
 
     if ((sourceFlags >> 16 & 0xFFFF) == 0x1234) {
         mWFDFlag = true;
+        parserFlags |= ATSParser::WIFI_DISPLAY;
         ALOGD("NuPlayer::StreamingSource::start sourceFlags %x",sourceFlags);
     }
 

@@ -1008,7 +1008,7 @@ void WifiDisplaySink::onGetParameterRequest(
              
 	    AString body =  AStringPrintf(
 		"wfd_video_formats: %s\r\n"
-               "wfd_audio_codecs: LPCM 00000002 00, AAC 0000000F 00\r\n", wfdVideoFormatsString.c_str());
+               "wfd_audio_codecs: LPCM 00000002 00\r\n", wfdVideoFormatsString.c_str());
             /* answers capabilities that the WFD source are only interested in */
             if (strstr(request_param, "wfd_3d_video_formats"))
                 body.append("wfd_3d_video_formats: none\r\n");

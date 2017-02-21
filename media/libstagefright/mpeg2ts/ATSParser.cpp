@@ -625,7 +625,10 @@ ATSParser::Stream::Stream(
 
         case STREAMTYPE_LPCM_AC3:
         case STREAMTYPE_AC3:
-            mQueue = new ElementaryStreamQueue(
+            if (mProgram->parserFlags() & WIFI_DISPLAY)
+               mQueue = new ElementaryStreamQueue(ElementaryStreamQueue::PCM_AUDIO);
+            else
+               mQueue = new ElementaryStreamQueue(
                     ElementaryStreamQueue::AC3);
             break;
 

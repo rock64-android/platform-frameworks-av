@@ -60,6 +60,8 @@ struct ATSParser : public RefBase {
         TS_TIMESTAMPS_ARE_ABSOLUTE = 1,
         // Video PES packets contain exactly one (aligned) access unit.
         ALIGNED_VIDEO_DATA         = 2,
+        // WiFi Display
+        WIFI_DISPLAY               = 4,
     };
 
     // Event is used to signal sync point event at feedTSPacket().

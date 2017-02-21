@@ -165,7 +165,7 @@ MediaScanResult MediaScanner::doProcessDirectory(
     sp<IMediaPlayerService> mediaservice = interface_cast<IMediaPlayerService>(playerbinder);
     while ((entry = readdir(dir))) {
 
-        if(mediaservice->hasMediaClient()){
+        while(mediaservice->hasMediaClient()){
             sleep(1);
             //ALOGE("add by jkand.huang, scan sleep when play video.\n");
         }

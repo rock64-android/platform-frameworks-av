@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <binder/IServiceManager.h>
 #include <media/IMediaPlayerService.h>
+#include <dlfcn.h>
 
 namespace android {
 
@@ -80,6 +81,25 @@ void MediaScanner::loadSkipList() {
     }
 }
 
+typedef int32_t (*CheckPlayType)();
+int32_t CheckPlayerState()
+{
+    void* Handle = dlopen("librkffplayer.so", RTLD_NOW);
+    if (Handle == NULL) {
+        return 0x0F2D3EFF;
+    }
+
+    CheckPlayType checkPlayType = (CheckPlayType)dlsym(Handle, "player_exit_init");
+    if (checkPlayType == NULL) {
+        dlclose(Handle);
+        return 0x0F2D3EFF;
+    }
+
+    int32_t type = checkPlayType();
+    dlclose(Handle);
+    return type;
+}
+
 MediaScanResult MediaScanner::processDirectory(
         const char *path, MediaScannerClient &client) {
     int pathLength = strlen(path);
@@ -100,6 +120,8 @@ MediaScanResult MediaScanner::processDirectory(
     }
 
     client.setLocale(locale());
+
+    CheckPlayerState();
 
     MediaScanResult result = doProcessDirectory(pathBuffer, pathRemaining, client, false);
 

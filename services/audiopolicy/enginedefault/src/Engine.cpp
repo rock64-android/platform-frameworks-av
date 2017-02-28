@@ -539,6 +539,15 @@ audio_devices_t Engine::getDeviceForStrategyInt(routing_strategy strategy,
         break;
     }
 
+#ifdef BOX_STRATEGY
+    if ((device & AUDIO_DEVICE_OUT_BLUETOOTH_A2DP)
+        || (device & AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES)
+        || (device & AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER)) {
+        device &= ~AUDIO_DEVICE_OUT_SPDIF;
+        device &= ~AUDIO_DEVICE_OUT_HDMI;
+        device &= ~AUDIO_DEVICE_OUT_SPEAKER;
+    }
+#endif
     if (device == AUDIO_DEVICE_NONE) {
         ALOGV("getDeviceForStrategy() no device found for strategy %d", strategy);
         device = mApmObserver->getDefaultOutputDevice()->type();

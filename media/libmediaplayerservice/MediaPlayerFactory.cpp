@@ -84,7 +84,7 @@ status_t MediaPlayerFactory::registerFactory_l(IFactory* factory,
 
 static player_type getDefaultPlayerType() {
 	char value[PROPERTY_VALUE_MAX];
-	if (property_get("persist.cts_gts.status", value, NULL)
+	if (property_get("cts_gts.status", value, NULL)
 		&& (!strcmp("1", value) || !strcasecmp("true", value))) {
 		return NU_PLAYER;
 	}
@@ -161,7 +161,7 @@ void MediaPlayerFactory::unregisterFactory(player_type type) {
 player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               const char* url) {
 	char value[PROPERTY_VALUE_MAX];
-	if (property_get("persist.cts_gts.status", value, NULL)
+	if (property_get("cts_gts.status", value, NULL)
 		&& (!strcmp("1", value) || !strcasecmp("true", value))) {
 		return NU_PLAYER;
 	}
@@ -358,7 +358,7 @@ public:
                 || !strncasecmp("https://", url, 8)
                 || !strncasecmp("rtsp://", url, 7)){
             char value[PROPERTY_VALUE_MAX];
-            if((property_get("sys.cts_gts.status", value, NULL))
+            if((property_get("cts_gts.status", value, NULL))
                 &&(strstr(value, "true"))){
                 return 0.0;
             }

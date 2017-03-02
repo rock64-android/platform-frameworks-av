@@ -133,8 +133,6 @@ void *WifiDisplaySink::ThreadWrapper(void *)
 	fds[1].events = POLLIN;
 	fds[1].revents = 0;
 
-
-	
 	local.sun_family = AF_UNIX;
 	strcpy(local.sun_path, SOCK_PATH);
 	unlink(local.sun_path);
@@ -1004,7 +1002,7 @@ void WifiDisplaySink::onGetParameterRequest(
          memset(parameterByte, 0, 3);
 	  resolutionToParameterByte(parameterByte, displayWidth, displayHeight, info.fps);
 	  AString wfdVideoFormatsString(parameterByte);
-	  wfdVideoFormatsString.append(" 00 02 02 0001DEFF 157C7FFF 00000FFF 00 0000 0000 00 none none");
+	  wfdVideoFormatsString.append(" 00 02 08 0001DEFF 157C7FFF 00000FFF 00 0000 0000 00 none none,01 08 0001DEFF 157C7FFF 00000FFF 00 0000 0000 00 none none");
 #if 1
       const char *request_param = data->getContent();
              
@@ -1087,6 +1085,7 @@ void WifiDisplaySink::onGetParameterRequest(
 		last_time = systemTime(SYSTEM_TIME_MONOTONIC) / 1000;
 		AString response = "RTSP/1.0 200 OK\r\n";
 	    AppendCommonResponse(&response, cseq);
+            response.append(AStringPrintf("Session: %s\r\n", mPlaybackSessionID.c_str()));
 		response.append("\r\n");
     status_t err = mNetSession->sendRequest(sessionID, response.c_str());
 		ALOGI("%s\n",response.c_str());

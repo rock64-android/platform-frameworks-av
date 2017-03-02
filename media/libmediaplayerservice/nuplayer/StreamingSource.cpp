@@ -36,6 +36,9 @@ NuPlayer::StreamingSource::StreamingSource(
         const sp<AMessage> &notify,
         const sp<IStreamSource> &source)
     : Source(notify),
+      mWFDFlag(false),
+      mWFDStartSysTimeUs(-1),
+      mWFDStartMediaTimeUs(-1),
       mSource(source),
       mFinalResult(OK),
       mBuffering(false) {
@@ -72,6 +75,11 @@ void NuPlayer::StreamingSource::start() {
         parserFlags |= ATSParser::ALIGNED_VIDEO_DATA;
     }
 
+    if ((sourceFlags >> 16 & 0xFFFF) == 0x1234) {
+        mWFDFlag = true;
+        ALOGD("NuPlayer::StreamingSource::start sourceFlags %x",sourceFlags);
+    }
+
     mTSParser = new ATSParser(parserFlags);
 
     mStreamListener->start();
@@ -84,7 +92,7 @@ status_t NuPlayer::StreamingSource::feedMoreTSData() {
 }
 
 void NuPlayer::StreamingSource::onReadBuffer() {
-    for (int32_t i = 0; i < 50; ++i) {
+    for (int32_t i = 0; i < 200; ++i) {
         char buffer[188];
         sp<AMessage> extra;
         ssize_t n = mStreamListener->read(buffer, sizeof(buffer), &extra);
@@ -110,8 +118,18 @@ void NuPlayer::StreamingSource::onReadBuffer() {
                 type = mask;
             }
 
-            mTSParser->signalDiscontinuity(
-                    (ATSParser::DiscontinuityType)type, extra);
+            if (mWFDFlag) 
+            { 
+                int64_t sys_timeUs;
+                int64_t mediaTimeUs;
+                if (extra->findInt64("wifidisplay_sys_timeUs", &sys_timeUs) && extra->findInt64("timeUs", &mediaTimeUs)) {
+                   mWFDStartSysTimeUs = sys_timeUs; 
+                   mWFDStartMediaTimeUs = mediaTimeUs;
+                }
+            } else {
+                   mTSParser->signalDiscontinuity((ATSParser::DiscontinuityType)type, extra);
+            }
+
         } else if (n < 0) {
             break;
         } else {
@@ -147,7 +165,7 @@ void NuPlayer::StreamingSource::onReadBuffer() {
                     break;
                 }
             }
-        }
+        } 
     }
 }
 
@@ -170,7 +188,6 @@ status_t NuPlayer::StreamingSource::postReadBuffer() {
 bool NuPlayer::StreamingSource::haveSufficientDataOnAllTracks() {
     // We're going to buffer at least 2 secs worth data on all tracks before
     // starting playback (both at startup and after a seek).
-
     static const int64_t kMinDurationUs = 2000000ll;
 
     sp<AnotherPacketSource> audioTrack = getSource(true /*audio*/);

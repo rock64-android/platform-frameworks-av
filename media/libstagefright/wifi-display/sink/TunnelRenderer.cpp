@@ -324,7 +324,7 @@ void TunnelRenderer::queueBuffer(const sp<ABuffer> &buffer) {
 				}
 				
 			}	
-	        for(i = 0; i < len-18; i++) //lbt
+	        for(i = 0; i < len-18; i+=188) //lbt
 	        {
 				int	padding_len = ((buff[i+3] & 0x30) == 0x30)? (buff[i+4] + 1): 0;
 		

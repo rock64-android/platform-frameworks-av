@@ -122,6 +122,10 @@ struct NuPlayer::Source : public AHandler {
         return true;
     }
 
+    virtual bool isWFDStreaming() {return false;}
+    virtual int64_t getWFDStartSysTimeUs() {return -1;}
+    virtual int64_t getWFDStartMediaTimeUs() {return -1;}
+
 protected:
     virtual ~Source() {}
 

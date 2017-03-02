@@ -608,6 +608,12 @@ bool NuPlayer::Decoder::handleAnOutputBuffer(
 
     if (mRenderer != NULL) {
         // send the buffer to renderer.
+        if (mSource->isWFDStreaming()) {
+            int64_t sys_start_time = mSource->getWFDStartSysTimeUs();
+            int64_t audio_start_mediaTimeUs = mSource->getWFDStartMediaTimeUs();
+            if ((sys_start_time != -1) && (audio_start_mediaTimeUs != -1))
+               mRenderer->setWFDTimeUs(sys_start_time, audio_start_mediaTimeUs);
+        }
         mRenderer->queueBuffer(mIsAudio, buffer, reply);
         if (eos && !isDiscontinuityPending()) {
             mRenderer->queueEOS(mIsAudio, ERROR_END_OF_STREAM);

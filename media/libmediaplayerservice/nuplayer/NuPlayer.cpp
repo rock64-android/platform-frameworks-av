@@ -1300,6 +1300,10 @@ void NuPlayer::onStart(int64_t startPositionUs) {
         flags |= Renderer::FLAG_REAL_TIME;
     }
 
+    if (mSource->isWFDStreaming()) {
+        flags |= Renderer::FLAG_WFD_STREAMING;
+    }
+
     sp<MetaData> audioMeta = mSource->getFormatMeta(true /* audio */);
     audio_stream_type_t streamType = AUDIO_STREAM_MUSIC;
     if (mAudioSink != NULL) {

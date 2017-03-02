@@ -34,6 +34,7 @@ struct NuPlayer::Renderer : public AHandler {
     enum Flags {
         FLAG_REAL_TIME = 1,
         FLAG_OFFLOAD_AUDIO = 2,
+        FLAG_WFD_STREAMING = 8,
     };
     Renderer(const sp<MediaPlayerBase::AudioSink> &sink,
              const sp<AMessage> &notify,
@@ -80,6 +81,11 @@ struct NuPlayer::Renderer : public AHandler {
             uint32_t flags,
             bool *isOffloaded);
     void closeAudioSink();
+
+    void setWFDTimeUs(int64_t sysTimeUs, int64_t mediaTimeUs) {
+       sys_start_time = sysTimeUs;
+       audio_start_timeUs = mediaTimeUs;
+    }
 
     enum {
         kWhatEOS                      = 'eos ',
@@ -179,6 +185,12 @@ private:
     bool mRenderingDataDelivered;
 
     int64_t mLastPositionUpdateUs;
+
+    int64_t sys_start_time;
+    int64_t audio_start_timeUs;
+    int64_t last_adujst_time;
+    int64_t last_timeUs;
+    int64_t audio_latency_time;
 
     int32_t mAudioOffloadPauseTimeoutGeneration;
     bool mAudioTornDown;

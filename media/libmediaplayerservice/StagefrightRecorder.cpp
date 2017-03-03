@@ -1670,7 +1670,8 @@ status_t StagefrightRecorder::setupAudioEncoder(const sp<MediaWriter>& writer) {
 
     sp<MediaCodecSource> audioEncoder = createAudioSource();
     if (audioEncoder == NULL) {
-        return UNKNOWN_ERROR;
+        return OK;
+        //return UNKNOWN_ERROR;
     }
 
     writer->addSource(audioEncoder);
@@ -1717,14 +1718,12 @@ status_t StagefrightRecorder::setupMPEG4orWEBMRecording() {
         // camcorder applications in the recorded files.
         // TODO Audio source is currently unsupported for webm output; vorbis encoder needed.
         // disable audio for time lapse recording
-        #ifndef TARGET_RK3328   //disable audio temporary for rk3328
         bool disableAudio = mCaptureFpsEnable && mCaptureFps < mFrameRate;
         if (!disableAudio && mAudioSource != AUDIO_SOURCE_CNT) {
             err = setupAudioEncoder(writer);
             if (err != OK) return err;
             mTotalBitRate += mAudioBitRate;
         }
-        #endif
 
         if (mCaptureFpsEnable) {
             mp4writer->setCaptureRate(mCaptureFps);

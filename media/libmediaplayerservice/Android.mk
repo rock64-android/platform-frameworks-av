@@ -80,9 +80,6 @@ LOCAL_C_INCLUDES += \
 endif
 LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall -Wno-error=unused-parameter -Wno-error=unused-function
 
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3328)
-	LOCAL_CFLAGS += -DTARGET_RK3328
-endif
 
 LOCAL_CLANG := true
 

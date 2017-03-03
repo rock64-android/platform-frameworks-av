@@ -104,7 +104,7 @@ bool recordingAllowed(const String16& opPackageName, pid_t pid, uid_t uid) {
     if (appOps.noteOp(AppOpsManager::OP_RECORD_AUDIO, uid, checkedOpPackageName)
             != AppOpsManager::MODE_ALLOWED) {
         ALOGE("Request denied by app op OP_RECORD_AUDIO");
-        return false;
+        //return false;
     }
 
     return true;

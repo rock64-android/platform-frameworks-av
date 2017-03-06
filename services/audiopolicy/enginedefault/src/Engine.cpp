@@ -673,6 +673,11 @@ audio_devices_t Engine::getDeviceForInputSource(audio_source_t inputSource) cons
         ALOGW("getDeviceForInputSource() invalid input source %d", inputSource);
         break;
     }
+#ifdef BOX_STRATEGY
+    if (availableDeviceTypes & AUDIO_DEVICE_IN_USB_DEVICE) {
+        device = AUDIO_DEVICE_IN_USB_DEVICE;
+    }
+#endif
     if (device == AUDIO_DEVICE_NONE) {
         ALOGV("getDeviceForInputSource() no device found for source %d", inputSource);
         if (availableDeviceTypes & AUDIO_DEVICE_IN_STUB) {

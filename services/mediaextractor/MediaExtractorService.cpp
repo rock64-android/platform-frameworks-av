@@ -46,7 +46,13 @@ sp<IMediaExtractor> MediaExtractorService::makeExtractor(
 }
 
 status_t MediaExtractorService::dump(int fd, const Vector<String16>& args) {
-    return dumpExtractors(fd, args);
+   String8 result;
+   if (checkCallingPermission(String16("android.permission.DUMP")) == false) {
+	   result.appendFormat("Permission Denial: can't dump MediaExtractorService");
+	   write(fd, result.string(), result.size());
+	   return NO_ERROR;
+   }
+   return dumpExtractors(fd, args);
 }
 
 status_t MediaExtractorService::onTransact(uint32_t code, const Parcel& data, Parcel* reply,

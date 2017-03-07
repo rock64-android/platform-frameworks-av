@@ -370,7 +370,7 @@ status_t CameraSource::configureCamera(
         if (strstr(supportedFrameRates, buf) == NULL) {
             ALOGE("Requested frame rate (%d) is not supported: %s",
                 frameRate, supportedFrameRates);
-            return BAD_VALUE;
+            //return BAD_VALUE;
         }
 
         // The frame rate is supported, set the camera to the requested value.

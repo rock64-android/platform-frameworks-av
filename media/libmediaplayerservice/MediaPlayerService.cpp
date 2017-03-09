@@ -1028,7 +1028,8 @@ status_t MediaPlayerService::Client::prepareAsync()
 status_t MediaPlayerService::Client::start()
 {
     ALOGV("[%d] start", mConnId);
-    mMaybeVideoAlive = (mConnectedWindow.get() != NULL);
+    if (mConnectedWindow.get() == NULL)
+        mMaybeVideoAlive = false;
     sp<MediaPlayerBase> p = getPlayer();
     if (p == 0) return UNKNOWN_ERROR;
     p->setLooping(mLoop);
@@ -1367,6 +1368,15 @@ void MediaPlayerService::Client::notify(
         // Update the list of metadata that have changed. getMetadata
         // also access mMetadataUpdated and clears it.
         client->addNewMetadataUpdate(metadata_type);
+    }
+
+    //should be exist video track
+    if (MEDIA_SET_VIDEO_SIZE == msg) {
+        if (ext1 == 0 || ext2 == 0) {
+            client->mMaybeVideoAlive = false;
+        } else {
+            client->mMaybeVideoAlive = true;
+        }
     }
 
     if (c != NULL) {

@@ -214,6 +214,7 @@ OMXNodeInstance::OMXNodeInstance(
       mQueriedProhibitedExtensions(false),
       mBufferIDCount(0)
 {
+    mNodeName = name;
     mName = ADebug::GetDebugName(name);
     DEBUG = ADebug::GetDebugLevelFromProperty(name, "debug.stagefright.omx-debug");
     ALOGV("debug level for %s is %d", name, DEBUG);

@@ -135,6 +135,10 @@ struct OMXNodeInstance {
         return mIsSecure;
     }
 
+    const char* getNodeName() { 
+        return mNodeName.string();
+    }
+
     // handles messages and removes them from the list
     void onMessages(std::list<omx_message> &messages);
     void onMessage(const omx_message &msg);
@@ -156,6 +160,7 @@ private:
     bool mQueriedProhibitedExtensions;
     SortedVector<OMX_INDEXTYPE> mProhibitedExtensions;
     bool mIsSecure;
+    String8 mNodeName;
 
     // Lock only covers mGraphicBufferSource.  We can't always use mLock
     // because of rare instances where we'd end up locking it recursively.

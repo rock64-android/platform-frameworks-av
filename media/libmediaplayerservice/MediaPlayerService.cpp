@@ -594,8 +594,17 @@ bool MediaPlayerService::hasMediaClient()
         nodeSize += mediaCodecOMX->getLiveNodeSize();
         ALOGV("media codec omx nodes: %zu", nodeSize);
     }
+
+    bool hasVClient = false;
+    for (size_t i = 0; i < mClients.size(); i++) {
+        sp<Client> c = mClients[i].promote();
+        if (c->isVideoClientAlive()) {
+            hasVClient = true;
+            break;
+        }
+    }
     
-    if (mClients.size() == 0 && nodeSize == 0) {
+    if (!hasVClient && nodeSize == 0) {
         return false;
     } else {
         return true;
@@ -618,6 +627,7 @@ MediaPlayerService::Client::Client(
     mUID = uid;
     mRetransmitEndpointValid = false;
     mAudioAttributes = NULL;
+    mMaybeVideoAlive = false;
 
 #if CALLBACK_ANTAGONIZER
     ALOGD("create Antagonizer");
@@ -735,7 +745,6 @@ sp<MediaPlayerBase> MediaPlayerService::Client::setDataSource_pre(
                 mPid, mAudioAttributes);
         static_cast<MediaPlayerInterface*>(p.get())->setAudioSink(mAudioOutput);
     }
-
     return p;
 }
 
@@ -1005,6 +1014,7 @@ status_t MediaPlayerService::Client::getMetadata(
 status_t MediaPlayerService::Client::prepareAsync()
 {
     ALOGV("[%d] prepareAsync", mConnId);
+    mMaybeVideoAlive = (mConnectedWindow.get() != NULL);
     sp<MediaPlayerBase> p = getPlayer();
     if (p == 0) return UNKNOWN_ERROR;
     status_t ret = p->prepareAsync();
@@ -1018,6 +1028,7 @@ status_t MediaPlayerService::Client::prepareAsync()
 status_t MediaPlayerService::Client::start()
 {
     ALOGV("[%d] start", mConnId);
+    mMaybeVideoAlive = (mConnectedWindow.get() != NULL);
     sp<MediaPlayerBase> p = getPlayer();
     if (p == 0) return UNKNOWN_ERROR;
     p->setLooping(mLoop);
@@ -1027,6 +1038,7 @@ status_t MediaPlayerService::Client::start()
 status_t MediaPlayerService::Client::stop()
 {
     ALOGV("[%d] stop", mConnId);
+    mMaybeVideoAlive = false;
     sp<MediaPlayerBase> p = getPlayer();
     if (p == 0) return UNKNOWN_ERROR;
     return p->stop();
@@ -1162,6 +1174,7 @@ status_t MediaPlayerService::Client::seekTo(int msec)
 status_t MediaPlayerService::Client::reset()
 {
     ALOGV("[%d] reset", mConnId);
+    mMaybeVideoAlive = false;
     mRetransmitEndpointValid = false;
     sp<MediaPlayerBase> p = getPlayer();
     if (p == 0) return UNKNOWN_ERROR;

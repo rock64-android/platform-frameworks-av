@@ -343,6 +343,7 @@ private:
         virtual status_t        dump(int fd, const Vector<String16>& args);
 
                 audio_session_t getAudioSessionId() { return mAudioSessionId; }
+                bool            isVideoClientAlive() { return mMaybeVideoAlive; }
 
     private:
         class ServiceDeathNotifier: public IBinder::DeathRecipient
@@ -422,6 +423,7 @@ private:
 
         sp<IBinder::DeathRecipient> mExtractorDeathListener;
         sp<IBinder::DeathRecipient> mCodecDeathListener;
+        bool mMaybeVideoAlive;
 #if CALLBACK_ANTAGONIZER
                     Antagonizer*                mAntagonizer;
 #endif

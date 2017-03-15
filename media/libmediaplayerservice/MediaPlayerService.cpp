@@ -426,6 +426,7 @@ status_t MediaPlayerService::dump(int fd, const Vector<String16>& args)
     const size_t SIZE = 256;
     char buffer[SIZE];
     String8 result;
+    bool dumpScan = false;
     SortedVector< sp<Client> > clients; //to serialise the mutex unlock & client destruction.
     SortedVector< sp<MediaRecorderClient> > mediaRecorderClients;
 
@@ -530,7 +531,6 @@ status_t MediaPlayerService::dump(int fd, const Vector<String16>& args)
 
         bool dumpMem = false;
         bool unreachableMemory = false;
-        bool dumpScan = false;
         for (size_t i = 0; i < args.size(); i++) {
             if (args[i] == String16("-m")) {
                 dumpMem = true;
@@ -551,14 +551,17 @@ status_t MediaPlayerService::dump(int fd, const Vector<String16>& args)
             std::string s = GetUnreachableMemoryString(true /* contents */, 10000 /* limit */);
             result.append(s.c_str(), s.size());
         }
-        if (dumpScan) {
-            if (hasMediaClient()) {
-                result.append(" MScanable(0)\n");
-            } else {
-                result.append(" MScanable(1)\n");
-            }
+    }
+
+    //no mLock outside
+    if (dumpScan) {
+        if (hasMediaClient()) {
+            result.append(" MScanable(0)\n");
+        } else {
+            result.append(" MScanable(1)\n");
         }
     }
+    
     write(fd, result.string(), result.size());
     return NO_ERROR;
 }
@@ -595,6 +598,7 @@ bool MediaPlayerService::hasMediaClient()
         ALOGV("media codec omx nodes: %zu", nodeSize);
     }
 
+    Mutex::Autolock lock(mLock);
     bool hasVClient = false;
     for (size_t i = 0; i < mClients.size(); i++) {
         sp<Client> c = mClients[i].promote();

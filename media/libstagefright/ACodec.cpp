@@ -53,6 +53,7 @@
 #include <OMX_AsString.h>
 
 #include "include/avc_utils.h"
+#include <cutils/properties.h>
 #include "include/DataConverter.h"
 #include "omx/OMXUtils.h"
 
@@ -6674,6 +6675,13 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
     AString componentName;
     uint32_t quirks = 0;
     int32_t encoder = false;
+    char prop_value[128] = {};
+    property_get("cts_gts.media.gts",prop_value,NULL);
+    msg->findString("componentName", &componentName);
+    if(!strcmp(componentName.c_str(),"OMX.google.h264.decoder") && strstr(prop_value,"true")) {
+        msg->setString("componentName", "OMX.rk.video_decoder.avc");
+        ALOGE("h264softdec to h264haldec when cts_gts.media.gts is true");
+    }
     if (msg->findString("componentName", &componentName)) {
         sp<IMediaCodecList> list = MediaCodecList::getInstance();
         if (list != NULL && list->findCodecByName(componentName.c_str()) >= 0) {

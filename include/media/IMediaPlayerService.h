@@ -87,6 +87,7 @@ public:
     virtual void addBatteryData(uint32_t params) = 0;
     virtual status_t pullBatteryData(Parcel* reply) = 0;
     virtual bool hasMediaClient() = 0;
+    virtual size_t getMediaClientSize() = 0;
 };
 
 // ----------------------------------------------------------------------------

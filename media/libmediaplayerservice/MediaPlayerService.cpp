@@ -580,6 +580,12 @@ bool MediaPlayerService::hasClient(wp<Client> client)
 
 bool MediaPlayerService::hasMediaClient()
 {
+    size_t size = getMediaClientSize();
+    return (size > 0);
+}
+
+size_t MediaPlayerService::getMediaClientSize()
+{
     size_t nodeSize = 0;
     if (mOMX.get() != NULL) {
         nodeSize = mOMX->getLiveNodeSize();
@@ -599,20 +605,14 @@ bool MediaPlayerService::hasMediaClient()
     }
 
     Mutex::Autolock lock(mLock);
-    bool hasVClient = false;
     for (size_t i = 0; i < mClients.size(); i++) {
         sp<Client> c = mClients[i].promote();
         if (c->isVideoClientAlive()) {
-            hasVClient = true;
-            break;
+            nodeSize++;
         }
     }
-    
-    if (!hasVClient && nodeSize == 0) {
-        return false;
-    } else {
-        return true;
-    }
+
+    return nodeSize;
 }
 
 MediaPlayerService::Client::Client(

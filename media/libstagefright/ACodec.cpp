@@ -58,6 +58,8 @@
 
 namespace android {
 
+#define MIN(a, b) ((a) < (b))? (a) : (b)
+
 enum {
     kMaxIndicesToCheck = 32, // used when enumerating supported formats and profiles
 };
@@ -1089,9 +1091,9 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
     for (OMX_U32 extraBuffers = 2 + 1; /* condition inside loop */; extraBuffers--) {
         OMX_U32 newBufferCount =
             def.nBufferCountMin + *minUndequeuedBuffers + extraBuffers;
-        if(def.nBufferCountActual < newBufferCount || mXtsExoPlayer){
+        if(def.nBufferCountActual < newBufferCount || (mXtsExoPlayer && newBufferCount >= 20)){
             ALOGI("nBufferCountActual:%d  newBufferCount:%d",def.nBufferCountActual,newBufferCount);
-            def.nBufferCountActual = mXtsExoPlayer ? 20 : newBufferCount;
+            def.nBufferCountActual = mXtsExoPlayer ? MIN(20, newBufferCount) : newBufferCount;
             err = mOMX->setParameter(
                     mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
 

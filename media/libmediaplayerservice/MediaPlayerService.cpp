@@ -607,7 +607,7 @@ size_t MediaPlayerService::getMediaClientSize()
     Mutex::Autolock lock(mLock);
     for (size_t i = 0; i < mClients.size(); i++) {
         sp<Client> c = mClients[i].promote();
-        if (c->isVideoClientAlive()) {
+        if (c != NULL && c->isVideoClientAlive()) {
             nodeSize++;
         }
     }

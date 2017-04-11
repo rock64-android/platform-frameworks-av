@@ -6474,8 +6474,10 @@ void ACodec::BaseState::onOutputBufferDrained(const sp<AMessage> &msg) {
         }
 
         status_t err;
+#if 0  //temporary don't pass timestampNs to nativewindow buffer
         err = native_window_set_buffers_timestamp(mCodec->mNativeWindow.get(), timestampNs);
         ALOGW_IF(err != NO_ERROR, "failed to set buffer timestamp: %d", err);
+#endif
 
         info->checkReadFence("onOutputBufferDrained before queueBuffer");
         err = mCodec->mNativeWindow->queueBuffer(

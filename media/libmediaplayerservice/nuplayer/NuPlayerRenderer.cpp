@@ -512,8 +512,8 @@ void NuPlayer::Renderer::onMessageReceived(const sp<AMessage> &msg) {
                         (long long)delayUs, (long long)maxDrainDelayUs);
                 Mutex::Autolock autoLock(mLock);
                 if (mFlags & FLAG_WFD_STREAMING) {
-                    ALOGD("postdrainaudio %lld, delayUs");
-                    postDrainAudioQueue_l(5000);
+                    ALOGD("postdrainaudio %lld", delayUs/4);
+                    postDrainAudioQueue_l(delayUs/4);
                 } else {
                     postDrainAudioQueue_l(delayUs);
                 }
@@ -1048,7 +1048,7 @@ bool NuPlayer::Renderer::onDrainAudioQueue() {
                                                 }
                                         }
                                         {
-                                             ALOGD("discarding the late mediatimeUs %lld:%lld:%lld:%lld",mediaTimeUs,sys_start_time,audio_start_timeUs, last_timeUs);
+                                             ALOGV("discarding the late mediatimeUs %lld:%lld:%lld:%lld",mediaTimeUs,sys_start_time,audio_start_timeUs, last_timeUs);
                                              entry->mNotifyConsumed->post();
                                              mAudioQueue.erase(mAudioQueue.begin());
                                              entry = NULL;
@@ -1400,7 +1400,7 @@ void NuPlayer::Renderer::onDrainVideoQueue() {
         tooLate = (mVideoLateByUs > 40000);
 
         if (tooLate) {
-            ALOGV("video late by %lld us (%.2f secs)",
+            ALOGD("video late by %lld us (%.2f secs)",
                  (long long)mVideoLateByUs, mVideoLateByUs / 1E6);
         } else {
             int64_t mediaUs = 0;

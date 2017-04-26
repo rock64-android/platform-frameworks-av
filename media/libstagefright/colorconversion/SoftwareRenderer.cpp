@@ -164,8 +164,8 @@ void SoftwareRenderer::resetFormatIfChanged(const sp<AMessage> &format) {
     // Width must be multiple of 32???
     CHECK_EQ(0, native_window_set_buffers_dimensions(
                 mNativeWindow.get(),
-                bufWidth,
-                bufHeight));
+                (bufWidth+31)&(~31),
+                (bufHeight+31)&(~31)));
     CHECK_EQ(0, native_window_set_buffers_format(
                 mNativeWindow.get(),
                 halFormat));

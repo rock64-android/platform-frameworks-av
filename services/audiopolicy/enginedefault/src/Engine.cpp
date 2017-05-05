@@ -32,6 +32,7 @@
 #include <utils/String8.h>
 #include <utils/Log.h>
 
+#include <cutils/properties.h>
 namespace android
 {
 namespace audio_policy
@@ -542,7 +543,8 @@ audio_devices_t Engine::getDeviceForStrategyInt(routing_strategy strategy,
 #ifdef BOX_STRATEGY
     if ((device & AUDIO_DEVICE_OUT_BLUETOOTH_A2DP)
         || (device & AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES)
-        || (device & AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER)) {
+        || (device & AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER)
+	|| (device & AUDIO_DEVICE_OUT_USB_DEVICE)) {
         device &= ~AUDIO_DEVICE_OUT_SPDIF;
         device &= ~AUDIO_DEVICE_OUT_HDMI;
         device &= ~AUDIO_DEVICE_OUT_SPEAKER;
@@ -553,6 +555,22 @@ audio_devices_t Engine::getDeviceForStrategyInt(routing_strategy strategy,
         device = mApmObserver->getDefaultOutputDevice()->type();
         ALOGE_IF(device == AUDIO_DEVICE_NONE,
                  "getDeviceForStrategy() no default device defined");
+    }
+
+    char value[PROPERTY_VALUE_MAX];
+    property_get("media.audio.device_policy", value, "");
+    if (strstr(value, "hdmi")) {
+        ALOGD("set audio policy to hdmi, availableOutputDevicesType : 0x%x", availableOutputDevicesType);
+        if (availableOutputDevicesType & AUDIO_DEVICE_OUT_HDMI) {
+            ALOGD("set audio policy to hdmi succeed");
+            device = AUDIO_DEVICE_OUT_HDMI;
+        }
+    } else if (strstr(value, "usb")) {
+        ALOGD("set audio policy to usb, availableOutputDevicesType : 0x%x", availableOutputDevicesType);
+        if (availableOutputDevicesType & AUDIO_DEVICE_OUT_USB_DEVICE) {
+            ALOGD("set audio policy to usb succeed");
+            device = AUDIO_DEVICE_OUT_USB_DEVICE;
+        }
     }
     ALOGVV("getDeviceForStrategy() strategy %d, device %x", strategy, device);
     return device;

@@ -360,7 +360,11 @@ sp<IOMX> MediaPlayerService::getOMX() {
 }
 
 sp<IHDCP> MediaPlayerService::makeHDCP(bool createEncryptionModule) {
-    return new HDCP(createEncryptionModule);
+    //return new HDCP(createEncryptionModule);
+    Mutex::Autolock autoLock(mLock);
+    if (mHDCP.get() == NULL)
+        mHDCP = new HDCP(createEncryptionModule);
+    return mHDCP;
 }
 
 sp<IRemoteDisplay> MediaPlayerService::listenForRemoteDisplay(

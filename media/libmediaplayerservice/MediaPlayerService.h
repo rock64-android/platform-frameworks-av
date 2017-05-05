@@ -440,6 +440,7 @@ private:
                 SortedVector< wp<MediaRecorderClient> > mMediaRecorderClients;
                 int32_t                     mNextConnId;
                 sp<IOMX>                    mOMX;
+                sp<IHDCP>                   mHDCP;
 };
 
 // ----------------------------------------------------------------------------

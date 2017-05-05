@@ -164,7 +164,7 @@ void HDCP::ObserveWrapper(void *me, int msg, int ext1, int ext2) {
 }
 
 void HDCP::observe(int msg, int ext1, int ext2) {
-    Mutex::Autolock autoLock(mLock);
+    //Mutex::Autolock autoLock(mLock); //should be removed as it is a callback from hdcp library.
 
     if (mObserver != NULL) {
         mObserver->notify(msg, ext1, ext2, NULL /* obj */);

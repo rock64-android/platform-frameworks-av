@@ -23,6 +23,9 @@
 #include "AnotherPacketSource.h"
 #include "ESQueue.h"
 #include "include/avc_utils.h"
+#include <binder/IServiceManager.h>
+#include <media/IHDCP.h>
+#include <media/IMediaPlayerService.h>
 
 #include <media/stagefright/foundation/ABitReader.h>
 #include <media/stagefright/foundation/ABuffer.h>
@@ -160,6 +163,7 @@ private:
     List<off64_t> mPesStartOffsets;
 
     ElementaryStreamQueue *mQueue;
+    sp<IHDCP> mHDCP;
 
     // Flush accumulated payload if necessary --- i.e. at EOS or at the start of
     // another payload. event is set if the flushed payload is PES with a sync
@@ -986,7 +990,55 @@ status_t ATSParser::Stream::parsePES(ABitReader *br, SyncEvent *event) {
             optional_bytes_remaining -= 3;
         }
 
-        br->skipBits(optional_bytes_remaining * 8);
+        //HDCP Private Data
+        bool useHDCP = false;
+        uint32_t streamCTR = 0;
+        uint64_t outInputCTR = 0;
+        if(optional_bytes_remaining >= 17){
+          uint8_t hdcp_private_flag = br->getBits(8);
+          optional_bytes_remaining -= 1;
+          if(hdcp_private_flag==0x8e){
+             /* stream Counter */
+             br->skipBits(13);
+             streamCTR = br->getBits(2) << 30;
+             br->getBits(1);
+             streamCTR |= br->getBits(15) << 15;
+             br->getBits(1);
+             streamCTR |= br->getBits(15); 
+             br->getBits(1);
+
+             /* input Counter */
+             br->skipBits(11); 
+             outInputCTR = ((uint64_t)br->getBits(4)) << 60;
+             br->getBits(1);
+             outInputCTR |= ((uint64_t)br->getBits(15)) << 45;
+             br->getBits(1);
+             outInputCTR |= br->getBits(15) << 30;
+             br->skipBits(1); 
+             outInputCTR |= br->getBits(15) << 15;
+             br->getBits(1);
+             outInputCTR |= br->getBits(15);
+             br->getBits(1);
+
+             useHDCP = true;
+             //ALOGV("this packet has HDCP flag, CTR vlaue:%d:%lld", streamCTR, outInputCTR);
+             optional_bytes_remaining -= 16;
+          }
+      }
+
+      br->skipBits(optional_bytes_remaining * 8);
+
+      if(useHDCP){
+              if(mHDCP==NULL){
+                  sp<IServiceManager> sm = defaultServiceManager();
+                  sp<IBinder> binder = sm->getService(String16("media.player"));
+                  sp<IMediaPlayerService> service = interface_cast<IMediaPlayerService>(binder);
+                  CHECK(service != NULL);
+                  mHDCP = service->makeHDCP(false);
+                 if (mHDCP != NULL)
+                  ALOGD("successfully make HDCP decrypt object");
+              }
+      }
 
         // ES data follows.
 
@@ -1006,14 +1058,48 @@ status_t ATSParser::Stream::parsePES(ABitReader *br, SyncEvent *event) {
                 return ERROR_MALFORMED;
             }
 
-            onPayloadData(
-                    PTS_DTS_flags, PTS, DTS, br->data(), dataLength, event);
+            //Use HDCP
+           if(useHDCP){
+               if (mHDCP != NULL) {
+                       const uint8_t *pesData = br->data();
+                       size_t dataSize = br->numBitsLeft()/8;
+                       void *outData = malloc(dataSize);
+                       status_t err = mHDCP->decrypt(pesData,dataSize,streamCTR,outInputCTR,outData);
+                       if(err==OK){
+                               onPayloadData(PTS_DTS_flags, PTS, DTS, (uint8_t*)outData, dataSize,event);
+                       }else{
+                               ALOGE("decrypt pes failed");
+                               onPayloadData(PTS_DTS_flags, PTS, DTS, (uint8_t*)pesData, dataSize, event);
+                       }
+                       free(outData);
+                       outData = NULL;
+              }
+            }else {
+               onPayloadData(
+                      PTS_DTS_flags, PTS, DTS, br->data(), dataLength, event);
+            }
 
             br->skipBits(dataLength * 8);
         } else {
+          if (mHDCP != NULL) {
+                       const uint8_t *pesData = br->data();
+                       size_t dataSize = br->numBitsLeft()/8;
+                       void *outData = malloc(dataSize);
+                       //ALOGD("packet length unkowned:%d",dataSize);
+                       status_t err = mHDCP->decrypt(pesData,dataSize,streamCTR,outInputCTR,outData);
+                       if(err==OK){
+                               onPayloadData(PTS_DTS_flags, PTS, DTS, (uint8_t*)outData, dataSize,event);
+                       }else{
+                               ALOGE("decrypt pes failed");
+                               onPayloadData(PTS_DTS_flags, PTS, DTS, (uint8_t*)pesData, dataSize, event);
+                       }
+                       free(outData);
+                       outData = NULL;
+          }else {
             onPayloadData(
                     PTS_DTS_flags, PTS, DTS,
                     br->data(), br->numBitsLeft() / 8, event);
+            }
 
             size_t payloadSizeBits = br->numBitsLeft();
             if (payloadSizeBits % 8 != 0u) {

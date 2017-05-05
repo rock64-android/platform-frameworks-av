@@ -1015,7 +1015,7 @@ void WifiDisplaySink::onGetParameterRequest(
 
         if (strstr(request_param, "wfd_uibc_capability"))
         	body.append("wfd_uibc_capability: none\r\n"); 
-             
+#if 0             
 		/* using HDCP only if HDCP2.x Key inside, otherwise not support*/
 		char prop_value[PROPERTY_VALUE_MAX];
 		if (strstr(request_param, "wfd_content_protection"))
@@ -1036,9 +1036,15 @@ void WifiDisplaySink::onGetParameterRequest(
 		{
 			mUsingHDCP = false;
 		}
+#else
+        if (strstr(request_param, "wfd_content_protection")) {
+             mUsingHDCP = true;
+             body.append(AStringPrintf("wfd_content_protection: HDCP2.1 port=%d\r\n",kHDCPDefaultPort));
+        }
+#endif
 
         if (strstr(request_param, "wfd_display_edid"))
-        	body.append("wfd_display_edid: none\r\n");
+             body.append("wfd_display_edid: none\r\n");
 
         if (strstr(request_param, "wfd_coupled_sink"))
         	body.append("wfd_coupled_sink: none\r\n");

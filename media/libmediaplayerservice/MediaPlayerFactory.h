@@ -63,6 +63,7 @@ class MediaPlayerFactory {
                                      const sp<IStreamSource> &source);
     static player_type getPlayerType(const sp<IMediaPlayer>& client,
                                      const sp<DataSource> &source);
+    static std::string sCallingProcessName;
 
     static sp<MediaPlayerBase> createPlayer(player_type playerType,
                                             void* cookie,

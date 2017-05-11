@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
 	ALOGE("start---------WFD");
 
     char prop_value[PROPERTY_VALUE_MAX];
-    property_get("wfdargs",prop_value,NULL);
+    property_get("net.wfd.addr",prop_value,NULL);
 #if 0
     int res;
     while ((res = getopt(argc, argv, "s:hc:l:u:")) >= 0) {

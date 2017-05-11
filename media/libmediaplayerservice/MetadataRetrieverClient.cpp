@@ -193,7 +193,12 @@ status_t MetadataRetrieverClient::setDataSource(int fd, int64_t offset, int64_t 
                                           offset,
                                           length);
     ALOGV("player type = %d", playerType);
-    sp<MediaMetadataRetrieverBase> p = createRetriever(playerType);
+    sp<MediaMetadataRetrieverBase> p;
+    if(strcasestr(nameForFd(fd).c_str(),".mp3") || strcasestr(nameForFd(fd).c_str(),".aac")) {
+        p = new StagefrightMetadataRetriever;
+    } else {
+        p = createRetriever(playerType);
+    }
     if (p == NULL) {
         return NO_INIT;
     }

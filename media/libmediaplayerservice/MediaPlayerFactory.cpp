@@ -87,6 +87,9 @@ static player_type getDefaultPlayerType() {
     if(!strcmp(MediaPlayerFactory::sCallingProcessName.c_str(),"android.media.cts"))
         return NU_PLAYER;
 
+    if (!strcmp(MediaPlayerFactory::sCallingProcessName.c_str(),"android.mediastress.cts"))
+        return NU_PLAYER;
+
 #ifndef  USE_FFPLAYER
     return NU_PLAYER;
 #else
@@ -159,6 +162,8 @@ void MediaPlayerFactory::unregisterFactory(player_type type) {
 player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               const char* url) {
     if(!strcmp(sCallingProcessName.c_str(),"android.media.cts"))
+        return NU_PLAYER;
+    if(!strcmp(sCallingProcessName.c_str(),"android.mediastress.cts"))
         return NU_PLAYER;
 
 #ifdef USE_FFPLAYER

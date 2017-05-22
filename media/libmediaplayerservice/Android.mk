@@ -22,6 +22,8 @@ LOCAL_SRC_FILES:=               \
     RemoteDisplay.cpp           \
     StagefrightRecorder.cpp     \
     TestPlayerStub.cpp          \
+    MidiFile.cpp                \
+    MidiMetadataRetriever.cpp   \
 
 LOCAL_SHARED_LIBRARIES :=       \
     libbinder                   \
@@ -78,7 +80,7 @@ LOCAL_C_INCLUDES += \
     $(TOP)/hardware/rockchip/librkvpu                               \
     $(TOP)/frameworks/av/media/rk_ffplayer
 endif
-LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall -Wno-error=unused-parameter -Wno-error=unused-function
+LOCAL_CFLAGS += -Werror -Wno-error=deprecated-declarations -Wall -Wno-error=unused-parameter -Wno-error=unused-function -Wno-error=unused-variable
 
 
 LOCAL_CLANG := true

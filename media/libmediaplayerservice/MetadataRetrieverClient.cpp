@@ -39,6 +39,7 @@
 #include <private/media/VideoFrame.h>
 #include "MetadataRetrieverClient.h"
 #include "StagefrightMetadataRetriever.h"
+#include "MidiMetadataRetriever.h"
 #include "MediaPlayerFactory.h"
 
 #ifdef USE_FFPLAYER
@@ -196,6 +197,8 @@ status_t MetadataRetrieverClient::setDataSource(int fd, int64_t offset, int64_t 
     sp<MediaMetadataRetrieverBase> p;
     if(strcasestr(nameForFd(fd).c_str(),".mp3") || strcasestr(nameForFd(fd).c_str(),".aac")) {
         p = new StagefrightMetadataRetriever;
+    } else if(strcasestr(nameForFd(fd).c_str(),".mid") || strcasestr(nameForFd(fd).c_str(),".midi")) {
+        p = new MidiMetadataRetriever();
     } else {
         p = createRetriever(playerType);
     }

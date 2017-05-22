@@ -32,6 +32,7 @@
 
 #include "TestPlayerStub.h"
 #include "nuplayer/NuPlayerDriver.h"
+#include "MidiFile.h"
 
 #ifdef USE_FFPLAYER
 #include "FFPlayer.h"

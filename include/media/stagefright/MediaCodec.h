@@ -281,6 +281,8 @@ private:
 
         bool reclaimResource(const Vector<MediaResource> &resources);
 
+        pid_t obtainPid();
+
     private:
         Mutex mLock;
         sp<IResourceManagerService> mService;

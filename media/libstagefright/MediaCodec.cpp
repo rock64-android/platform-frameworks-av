@@ -367,6 +367,8 @@ status_t MediaCodec::init(const AString &name, bool nameIsType, bool encoder) {
         mCodec->setSoftCodecPref(true);
         ALOGI("set mSoftCodecPref as true");
     }
+    if (!strcmp(processName, "com.google.android.exoplayer.gts"))
+        mCodec->mGtsExoPlayer=true;
 
     bool secureCodec = false;
     if (nameIsType && !strncasecmp(name.c_str(), "video/", 6)) {

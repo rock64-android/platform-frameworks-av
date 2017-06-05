@@ -1109,8 +1109,8 @@ status_t ACodec::configureOutputBuffersFromNativeWindow(
     for (OMX_U32 extraBuffers = 2 + 1; /* condition inside loop */; extraBuffers--) {
         OMX_U32 newBufferCount =
             def.nBufferCountMin + *minUndequeuedBuffers + extraBuffers;
-        if(def.nBufferCountActual < newBufferCount){
-            def.nBufferCountActual = newBufferCount;
+        if(def.nBufferCountActual < newBufferCount || (mGtsExoPlayer && newBufferCount >= 20)){
+            def.nBufferCountActual = mGtsExoPlayer ? MIN(20, newBufferCount) : newBufferCount;
             err = mOMX->setParameter(
                     mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
 

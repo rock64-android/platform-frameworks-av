@@ -84,6 +84,7 @@ struct CodecBase : public AHandler, /* static */ ColorUtils {
     virtual void signalRequestIDRFrame() = 0;
     virtual void signalSetParameters(const sp<AMessage> &msg) = 0;
     virtual void signalEndOfInputStream() = 0;
+    bool mGtsExoPlayer;
     bool mSoftCodecPref;
     void setSoftCodecPref(bool forcesoft){mSoftCodecPref = forcesoft;};
 

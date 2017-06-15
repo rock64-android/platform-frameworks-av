@@ -23,6 +23,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <fcntl.h>
+
 
 #include <string.h>
 #include <cutils/atomic.h>
@@ -48,10 +50,12 @@
 
 namespace android {
 
+std::string MetadataRetrieverClient::sCallingProcessName;
 MetadataRetrieverClient::MetadataRetrieverClient(pid_t pid)
 {
     ALOGV("MetadataRetrieverClient constructor pid(%d)", pid);
     mPid = pid;
+    getCallingProcessName(pid);
     mThumbnail = NULL;
     mAlbumArt = NULL;
     mRetriever = NULL;
@@ -76,6 +80,24 @@ status_t MetadataRetrieverClient::dump(int fd, const Vector<String16>& /*args*/)
     return NO_ERROR;
 }
 
+void MetadataRetrieverClient::getCallingProcessName(pid_t pid){
+    char processName[255];
+    int fd;
+    snprintf(processName,sizeof(processName),"/proc/%d/cmdline",pid);
+    ALOGI("processName cmdline:%s",processName);
+    fd = open(processName, O_RDONLY);
+    if (fd < 0) {
+        ALOGE("Obtain calling ProcessName failed");
+    } else {
+        memset(processName,0x0,sizeof(processName));
+        int length = read(fd, processName, sizeof(processName) - 1);
+        processName[length] = 0;
+        MetadataRetrieverClient::sCallingProcessName = processName;
+        ALOGV("calling ProcessName:%s",MetadataRetrieverClient::sCallingProcessName.c_str());
+        close(fd);
+    }
+}
+
 void MetadataRetrieverClient::disconnect()
 {
     ALOGV("disconnect from pid %d", mPid);
@@ -89,12 +111,26 @@ void MetadataRetrieverClient::disconnect()
 static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
 {
     sp<MediaMetadataRetrieverBase> p;
-	char value[PROPERTY_VALUE_MAX];
+    char value[PROPERTY_VALUE_MAX];
     switch (playerType) {
         case STAGEFRIGHT_PLAYER:
         case FF_PLAYER:
         case NU_PLAYER:
         {
+            if (property_get("cts_gts.status", value, NULL)
+                && (!strcmp("1", value) || !strcasecmp("true", value))) {
+                ALOGD("Create Instance of StagefrightMetaDataRetriever");
+                p = new StagefrightMetadataRetriever;
+                break;
+            }
+
+            if(!strcmp(MetadataRetrieverClient::sCallingProcessName.c_str(),"com.android.camera2")
+                || !strcmp(MetadataRetrieverClient::sCallingProcessName.c_str(),"android.process.media")){
+                ALOGD("Create Instance of StagefrightMetaDataRetriever");
+                p = new StagefrightMetadataRetriever;
+                break;
+            }
+
             #ifdef USE_FFPLAYER
                 ALOGD("Create Instance of RockMetaDataRetriever");
                 p =  new RK_MetadataRetriever;
@@ -102,16 +138,25 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
                 ALOGD("Create Instance of StagefrightMetaDataRetriever");
                 p = new StagefrightMetadataRetriever;
             #endif
-	        if (property_get("cts_gts.status", value, NULL)
-		        && (!strcmp("1", value) || !strcasecmp("true", value))) {
-                ALOGD("Create Instance of StagefrightMetaDataRetriever");
-                p = new StagefrightMetadataRetriever;
-	        }
             break;
         }
         default:
             // TODO:
             // support for TEST_PLAYER
+            if (property_get("cts_gts.status", value, NULL)
+                && (!strcmp("1", value) || !strcasecmp("true", value))) {
+                ALOGD("Create Instance of StagefrightMetaDataRetriever");
+                p = new StagefrightMetadataRetriever;
+                break;
+            }
+
+            if(!strcmp(MetadataRetrieverClient::sCallingProcessName.c_str(),"com.android.camera2")
+                || !strcmp(MetadataRetrieverClient::sCallingProcessName.c_str(),"android.process.media")){
+                ALOGD("Create Instance of StagefrightMetaDataRetriever");
+                p = new StagefrightMetadataRetriever;
+                break;
+            }
+
             #ifdef USE_FFPLAYER
                 ALOGD("Create Instance of RockMetaDataRetriever, unknowType =%d; FF_PLAYER=%d; NU_PLAYER=%d", 
                                                                  playerType, FF_PLAYER, NU_PLAYER);
@@ -119,11 +164,6 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
             #else
                 ALOGE("player type %d is not supported",  playerType);
             #endif
-	        if (property_get("cts_gts.status", value, NULL)
-		        && (!strcmp("1", value) || !strcasecmp("true", value))) {
-                ALOGD("Create Instance of StagefrightMetaDataRetriever");
-                p = new StagefrightMetadataRetriever;
-	        }
             break;
     }
     if (p == NULL) {

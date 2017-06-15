@@ -24,6 +24,7 @@
 namespace android {
 
 CodecBase::CodecBase() {
+    mSoftCodecPref = false;
 }
 
 CodecBase::~CodecBase() {

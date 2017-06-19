@@ -3255,6 +3255,9 @@ AudioPolicyManager::AudioPolicyManager(AudioPolicyClientInterface *clientInterfa
         ALOGE("%s:  Could not get an instance of policy engine", __FUNCTION__);
         return;
     }
+
+    mHDMIOutputDevice = NULL;
+    mSPDIFOutputDevice = NULL;
 #ifdef BOX_STRATEGY
     mHDMIOutputDevice = new DeviceDescriptor(AUDIO_DEVICE_OUT_AUX_DIGITAL);
     mSPDIFOutputDevice = new DeviceDescriptor(AUDIO_DEVICE_OUT_SPDIF);

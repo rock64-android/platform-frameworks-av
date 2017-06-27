@@ -55,8 +55,6 @@ public:
     virtual const char*             extractMetadata(int keyCode);
 
     virtual status_t                dump(int fd, const Vector<String16>& args);
-    static void                     getCallingProcessName(pid_t pid);
-    static std::string              sCallingProcessName;
 
 private:
     friend class MediaPlayerService;

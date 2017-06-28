@@ -991,7 +991,9 @@ status_t ACodec::setupNativeWindowSizeFormatAndUsage(
     ALOGE("%s %d colorSpace = %x,eDyncRange = %x",__FUNCTION__,__LINE__,hdrParams.eColorSpace,hdrParams.eDyncRange);
     switch(hdrParams.eDyncRange) {
         case OMX_RK_EXT_DyncrangeHDR10: {
+            ALOGD("optimize vop hdr!");
             usage |= ((2 << 24) & 0x0f000000); //HDR10
+            usage |= GRALLOC_USAGE_PRIVATE_2;
             break;
         }
         case OMX_RK_EXT_DyncrangeHDRHLG: {
